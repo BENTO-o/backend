@@ -1,0 +1,1066 @@
+openapi: 3.0.0
+info:
+  title: STT API
+  description: API documentation for the STT site
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+
+paths:
+  /users:
+    get:
+      tags: 
+        - "User"
+      summary: Get all users
+      description: Retrieve the list of all users
+      responses:
+        '200':
+          description: A JSON array of user objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId:
+                      type: integer
+                      example: 1
+                    username:
+                      type: string
+                      example: user1
+                    email:
+                      type: string
+                      example: user1@example.com
+                    oauth_provider:
+                      type: string
+                      nullable: true
+                      example: null
+                    oauth_provider_id:
+                      type: string
+                      nullable: true
+                      example: null
+    post:
+      tags: 
+          - "User"
+      summary: Create a new user
+      description: Create a new user in the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: user1
+                password:
+                  type: string
+                  example: password123
+                email:
+                  type: string
+                  example: user1@example.com
+                oauth_provider:
+                  type: string
+                  nullable: true
+                  example: null
+                oauth_provider_id:
+                  type: string
+                  nullable: true
+                  example: null
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: user1
+                  email:
+                    type: string
+                    example: user1@example.com
+
+  /users/{userId}:
+    get:
+      tags: 
+          - "User"
+      summary: Get user by ID
+      description: Retrieve a specific user by userId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A user object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: user1
+                  email:
+                    type: string
+                    example: user1@example.com
+                  oauth_provider:
+                    type: string
+                    nullable: true
+                    example: null
+                  oauth_provider_id:
+                    type: string
+                    nullable: true
+                    example: null
+    delete:
+      tags: 
+          - "User"
+      summary: Delete user
+      description: Delete a specific user by userId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User deleted successfully.
+    patch:
+      tags: 
+        - "User"
+      summary: Partially update user information
+      description: Update specific fields of a user by userId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: newUsername
+                email:
+                  type: string
+                  example: newemail@example.com
+                oauth_provider:
+                  type: string
+                  nullable: true
+                  example: google
+                oauth_provider_id:
+                  type: string
+                  nullable: true
+                  example: 12345
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: newUsername
+                  email:
+                    type: string
+                    example: newemail@example.com
+                  oauth_provider:
+                    type: string
+                    nullable: true
+                    example: google
+                  oauth_provider_id:
+                    type: string
+                    nullable: true
+                    example: 12345
+
+  /audiofiles:
+    get:
+      tags: 
+          - "AudioFiles"
+      summary: Get all audio files
+      description: Retrieve the list of all audio files
+      responses:
+        '200':
+          description: A JSON array of audio file objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    audioId:
+                      type: integer
+                      example: 1
+                    file_path:
+                      type: string
+                      example: /uploads/audio1.mp3
+                    upload_date:
+                      type: string
+                      format: date-time
+                      example: 2023-09-15T12:34:56
+                    status:
+                      type: string
+                      example: processed
+                    language:
+                      type: string
+                      example: en
+                    userId:
+                      type: integer
+                      example: 1
+    post:
+      tags: 
+          - "AudioFiles"
+      summary: Upload a new audio file
+      description: Upload a new audio file to the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                file_path:
+                  type: string
+                  example: /uploads/audio1.mp3
+                status:
+                  type: string
+                  example: processing
+                language:
+                  type: string
+                  example: en
+                userId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Audio file uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audioId:
+                    type: integer
+                    example: 1
+                  file_path:
+                    type: string
+                    example: /uploads/audio1.mp3
+                  upload_date:
+                    type: string
+                    format: date-time
+                    example: 2023-09-15T12:34:56
+                  status:
+                    type: string
+                    example: processing
+                  language:
+                    type: string
+                    example: en
+                  userId:
+                    type: integer
+                    example: 1
+
+  /audiofiles/{audioId}:
+    get:
+      tags: 
+          - "AudioFiles"
+      summary: Get audio file by ID
+      description: Retrieve a specific audio file by audioId
+      parameters:
+        - name: audioId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: An audio file object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audioId:
+                    type: integer
+                    example: 1
+                  file_path:
+                    type: string
+                    example: /uploads/audio1.mp3
+                  upload_date:
+                    type: string
+                    format: date-time
+                    example: 2023-09-15T12:34:56
+                  status:
+                    type: string
+                    example: processed
+                  language:
+                    type: string
+                    example: en
+                  userId:
+                    type: integer
+                    example: 1
+    delete:
+      tags: 
+          - "AudioFiles"
+      summary: Delete audio file
+      description: Delete a specific audio file by audioId
+      parameters:
+        - name: audioId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Audio file deleted successfully.
+    patch:
+      tags: 
+        - "AudioFiles"
+      summary: Partially update audio file information
+      description: Update specific fields of an audio file by audioId
+      parameters:
+        - name: audioId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                file_path:
+                  type: string
+                  example: /uploads/new_audio1.mp3
+                status:
+                  type: string
+                  example: processed
+                language:
+                  type: string
+                  example: en
+      responses:
+        '200':
+          description: Audio file updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audioId:
+                    type: integer
+                    example: 1
+                  file_path:
+                    type: string
+                    example: /uploads/new_audio1.mp3
+                  status:
+                    type: string
+                    example: processed
+                  language:
+                    type: string
+                    example: en
+
+  /transcriptions:
+    get:
+      tags: 
+          - "Transcriptions"
+      summary: Get all transcriptions
+      description: Retrieve the list of all transcriptions
+      responses:
+        '200':
+          description: A JSON array of transcription objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    transId:
+                      type: integer
+                      example: 1
+                    title:
+                      type: string
+                      example: Meeting Transcript
+                    content:
+                      type: string
+                      example: This is the transcribed content...
+                    created_at:
+                      type: string
+                      format: date-time
+                      example: 2023-09-16T12:00:00
+                    audioId:
+                      type: integer
+                      example: 1
+                    userId:
+                      type: integer
+                      example: 1
+    post:
+      tags: 
+          - "Transcriptions"
+      summary: Create a new transcription
+      description: Create a new transcription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Meeting Transcript
+                content:
+                  type: string
+                  example: This is the transcribed content...
+                audioId:
+                  type: integer
+                  example: 1
+                userId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Transcription created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transId:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Meeting Transcript
+                  content:
+                    type: string
+                    example: This is the transcribed content...
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:00:00
+                  audioId:
+                    type: integer
+                    example: 1
+                  userId:
+                    type: integer
+                    example: 1
+
+  /transcriptions/{transId}:
+    get:
+      tags: 
+          - "Transcriptions"
+      summary: Get transcription by ID
+      description: Retrieve a specific transcription by transId
+      parameters:
+        - name: transId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A transcription object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transId:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Meeting Transcript
+                  content:
+                    type: string
+                    example: This is the transcribed content...
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:00:00
+                  audioId:
+                    type: integer
+                    example: 1
+                  userId:
+                    type: integer
+                    example: 1
+    delete:
+      tags: 
+          - "Transcriptions"
+      summary: Delete transcription
+      description: Delete a specific transcription by transId
+      parameters:
+        - name: transId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Transcription deleted successfully.
+    patch:
+      tags: 
+        - "Transcriptions"
+      summary: Partially update transcription information
+      description: Update specific fields of a transcription by transId
+      parameters:
+        - name: transId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Updated Transcript Title
+                content:
+                  type: string
+                  example: Updated transcribed content...
+      responses:
+        '200':
+          description: Transcription updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transId:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Updated Transcript Title
+                  content:
+                    type: string
+                    example: Updated transcribed content...
+
+  /notes:
+    get:
+      tags: 
+          - "Notes"
+      summary: Get all notes
+      description: Retrieve the list of all notes
+      responses:
+        '200':
+          description: A JSON array of note objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    noteId:
+                      type: integer
+                      example: 1
+                    content:
+                      type: string
+                      example: Note on the transcription...
+                    summary_date:
+                      type: string
+                      format: date-time
+                      example: 2023-09-16T12:30:00
+                    transId:
+                      type: integer
+                      example: 1
+    post:
+      tags: 
+          - "Notes"
+      summary: Create a new note
+      description: Create a new note for a transcription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  example: Note on the transcription...
+                transId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Note created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  noteId:
+                    type: integer
+                    example: 1
+                  content:
+                    type: string
+                    example: Note on the transcription...
+                  summary_date:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:30:00
+                  transId:
+                    type: integer
+                    example: 1
+
+  /notes/{noteId}:
+    get:
+      tags: 
+          - "Notes"
+      summary: Get note by ID
+      description: Retrieve a specific note by noteId
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A note object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  noteId:
+                    type: integer
+                    example: 1
+                  content:
+                    type: string
+                    example: Note on the transcription...
+                  summary_date:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:30:00
+                  transId:
+                    type: integer
+                    example: 1
+    delete:
+      tags: 
+          - "Notes"
+      summary: Delete note
+      description: Delete a specific note by noteId
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Note deleted successfully.
+    patch:
+      tags: 
+        - "Notes"
+      summary: Partially update note information
+      description: Update specific fields of a note by noteId
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  example: Updated note content...
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  noteId:
+                    type: integer
+                    example: 1
+                  content:
+                    type: string
+                    example: Updated note content...
+
+  /bookmarks:
+    get:
+      tags: 
+          - "Bookmarks"
+      summary: Get all bookmarks
+      description: Retrieve the list of all bookmarks
+      responses:
+        '200':
+          description: A JSON array of bookmark objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bookmarkId:
+                      type: integer
+                      example: 1
+                    timestamp:
+                      type: string
+                      example: "00:01:23"
+                    transId:
+                      type: integer
+                      example: 1
+    post:
+      tags: 
+          - "Bookmarks"
+      summary: Create a new bookmark
+      description: Create a new bookmark for a transcription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timestamp:
+                  type: string
+                  example: "00:01:23"
+                transId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Bookmark created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookmarkId:
+                    type: integer
+                    example: 1
+                  timestamp:
+                    type: string
+                    example: "00:01:23"
+                  transId:
+                    type: integer
+                    example: 1
+
+  /bookmarks/{bookmarkId}:
+    get:
+      tags: 
+          - "Bookmarks"
+      summary: Get bookmark by ID
+      description: Retrieve a specific bookmark by bookmarkId
+      parameters:
+        - name: bookmarkId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A bookmark object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookmarkId:
+                    type: integer
+                    example: 1
+                  timestamp:
+                    type: string
+                    example: "00:01:23"
+                  transId:
+                    type: integer
+                    example: 1
+    delete:
+      tags: 
+          - "Bookmarks"
+      summary: Delete bookmark
+      description: Delete a specific bookmark by bookmarkId
+      parameters:
+        - name: bookmarkId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Bookmark deleted successfully.
+    patch:
+      tags: 
+        - "Bookmarks"
+      summary: Partially update bookmark information
+      description: Update specific fields of a bookmark by bookmarkId
+      parameters:
+        - name: bookmarkId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timestamp:
+                  type: string
+                  example: "00:02:34"
+      responses:
+        '200':
+          description: Bookmark updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookmarkId:
+                    type: integer
+                    example: 1
+                  timestamp:
+                    type: string
+                    example: "00:02:34"
+                  transId:
+                    type: integer
+                    example: 1
+
+  /memos:
+    get:
+      tags: 
+          - "Memos"
+      summary: Get all memos
+      description: Retrieve the list of all memos
+      responses:
+        '200':
+          description: A JSON array of memo objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    memoId:
+                      type: integer
+                      example: 1
+                    text:
+                      type: string
+                      example: Memo for the transcription...
+                    created_at:
+                      type: string
+                      format: date-time
+                      example: 2023-09-16T12:30:00
+                    transId:
+                      type: integer
+                      example: 1
+    post:
+      tags: 
+          - "Memos"
+      summary: Create a new memo
+      description: Create a new memo for a transcription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  example: Memo for the transcription...
+                transId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Memo created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memoId:
+                    type: integer
+                    example: 1
+                  text:
+                    type: string
+                    example: Memo for the transcription...
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:30:00
+                  transId:
+                    type: integer
+                    example: 1
+
+  /memos/{memoId}:
+    get:
+      tags: 
+          - "Memos"
+      summary: Get memo by ID
+      description: Retrieve a specific memo by memoId
+      parameters:
+        - name: memoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A memo object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memoId:
+                    type: integer
+                    example: 1
+                  text:
+                    type: string
+                    example: Memo for the transcription...
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:30:00
+                  transId:
+                    type: integer
+                    example: 1
+    delete:
+      tags: 
+          - "Memos"
+      summary: Delete memo
+      description: Delete a specific memo by memoId
+      parameters:
+        - name: memoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Memo deleted successfully.
+    patch:
+      tags: 
+        - "Memos"
+      summary: Partially update memo information
+      description: Update specific fields of a memo by memoId
+      parameters:
+        - name: memoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  example: Updated memo content...
+      responses:
+        '200':
+          description: Memo updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memoId:
+                    type: integer
+                    example: 1
+                  text:
+                    type: string
+                    example: Updated memo content...
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: 2023-09-16T12:30:00
