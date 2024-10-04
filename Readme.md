@@ -198,6 +198,100 @@
         - `404`: 노트 또는 쿼리 찾을 수 없음
         - `401`: 인증 실패
 
+
+### 메모
+
+- **[📝 모든 메모 조회](#📝-모든-노트-조회)**
+    - **GET** `/memos`
+    - 설명: 인증된 사용자가 생성한 모든 메모 조회
+    - Responses:
+        - `200`: 메모 객체 배열
+        - `401`: 인증 실패
+
+- **[📝 메모 생성](#📝-메모-생성)**
+    - **POST** `/memos`
+    - 설명: 인증된 사용자가 메모 생성
+    - Request Body:
+        - `noteId`: integer
+        - `text`: string
+        - `timestamp`: string
+    - Responses:
+        - `201`: 메모 생성 성공
+        - `400`: 잘못된 요청 (잘못된 입력)
+        - `401`: 인증 실패
+
+- **[🔍 메모 조회](#🔍-메모-조회)**
+    - **GET** `/memos/{memoId}`
+    - 설명: 인증된 사용자가 생성한 특정 메모 조회
+    - Parameters:
+        - `memoId`: integer
+    - Responses:
+        - `200`: 메모 객체
+        - `401`: 인증 실패
+        - `404`: 메모 찾을 수 없음
+
+- **[✏️ 메모 수정](#✏️-메모-수정)**
+    - **PATCH** `/memos/{memoId}`
+    - 설명: 인증된 사용자가 생성한 특정 메모 일부 수정
+    - Parameters:
+        - `memoId`: integer
+    - Request Body:
+        - `text`: string
+    - Responses:
+        - `200`: 메모 수정 성공
+        - `400`: 잘못된 요청 (잘못된 입력)
+        - `401`: 인증 실패
+        - `404`: 메모 찾을 수 없음
+
+- **[🗑️ 메모 삭제](#🗑️-메모-삭제)**
+    - **DELETE** `/memos/{memoId}`
+    - 설명: ID로 특정 메모 삭제
+    - Parameters:
+        - `memoId`: integer
+    - Responses:
+        - `200`: 메모 삭제 성공
+        - `404`: 메모 찾을 수 없음
+
+
+### 북마크
+
+- **[📝 모든 북마크 조회](#📝-모든-노트-조회)**
+    - **GET** `/bookmarks`
+    - 설명: 인증된 사용자가 생성한 모든 북마크 조회
+    - Responses:
+        - `200`: 북마크 객체 배열
+        - `401`: 인증 실패
+
+- **[📝 북마크 생성](#📝-북마크-생성)**
+    - **POST** `/bookmarks`
+    - 설명: 인증된 사용자가 북마크 생성
+    - Request Body:
+        - `noteId`: integer
+        - `timestamp`: string
+    - Responses:
+        - `201`: 북마크 생성 성공
+        - `400`: 잘못된 요청 (잘못된 입력)
+        - `401`: 인증 실패
+
+- **[🔍 북마크 조회](#🔍-북마크-조회)**
+    - **GET** `/bookmarks/{bookmarkId}`
+    - 설명: 인증된 사용자가 생성한 특정 북마크 조회
+    - Parameters:
+        - `bookmarkId`: integer
+    - Responses:
+        - `200`: 북마크 객체
+        - `401`: 인증 실패
+        - `404`: 북마크 찾을 수 없음
+
+- **[🗑️ 북마크 삭제](#🗑️-북마크-삭제)**
+    - **DELETE** `/bookmarks/{bookmarkId}`
+    - 설명: ID로 특정 북마크 삭제
+    - Parameters:
+        - `bookmarkId`: integer
+    - Responses:
+        - `200`: 북마크 삭제 성공
+        - `404`: 북마크 찾을 수 없음
+
 ### 폴더
 
 - **[📂 모든 폴더 조회](#📂-모든-폴더-조회)**
