@@ -1110,6 +1110,69 @@ paths:
                   message:
                     type: string
                     example: "Memo not found"
+    patch:
+      tags:
+        - Memos
+      summary: Partially update a memo
+      description: Update specific fields of a memo created by the authenticated user
+      parameters:
+        - name: memoId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  example: "This is new memo"
+      responses:
+        200:
+          description: Memo updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Memo updated successfully"
+        400:
+          description: Bad Request (Invalid input)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid text"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Memo not found"
     delete:
       tags:
         - Memos
