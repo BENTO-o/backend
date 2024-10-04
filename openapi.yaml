@@ -964,6 +964,376 @@ paths:
                     type: string
                     example: "Unauthorized"
 
+  /memos:
+    get:
+      tags:
+        - Memos
+      summary: Get all memos
+      description: Retrieve all memos created by the authenticated user
+      responses:
+        200:
+          description: An array of memo objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    memoId:
+                      type: integer
+                      example: 1
+                    noteId:
+                      type: integer
+                      example: 1
+                    createdAt:
+                      type: string
+                      format: date-time
+                      example: "2021-09-30T12:00:00Z"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+    post:
+      tags:
+        - Memos
+      summary: Create a memo
+      description: Create a memo for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                noteId:
+                  type: integer
+                  example: 1
+                text:
+                  type: string
+                  example: "This is a memo"
+                timestamp:
+                  type: string
+                  example: "00:00:00"
+      responses:
+        201:
+          description: Memo created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Memo created successfully"
+        400:
+          description: Bad Request (Invalid input)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid text"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+
+  /memos/{memoId}:
+    get:
+      tags:
+        - Memos
+      summary: Get a memo
+      description: Retrieve a specific memo created by the authenticated user
+      parameters:
+        - name: memoId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: A memo object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memoId:
+                    type: integer
+                    example: 1
+                  noteId:
+                    type: integer
+                    example: 1
+                  text:
+                    type: string
+                    example: "This is a memo"
+                  timestamp:
+                    type: string
+                    example: "00:00:00"
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2021-09-30T12:00:00Z"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Memo not found"
+    delete:
+      tags:
+        - Memos
+      summary: Delete a memo
+      description: Delete a specific memo by its ID.
+      parameters:
+        - name: memoId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Memo deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Memo deleted successfully"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+        404:
+          description: Memo not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Memo not found"
+
+  /bookmarks:
+    get:
+      tags:
+        - Bookmarks
+      summary: Get all bookmarks
+      description: Retrieve all bookmarks created by the authenticated user
+      responses:
+        200:
+          description: An array of bookmark objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bookmarkId:
+                      type: integer
+                      example: 1
+                    noteId:
+                      type: integer
+                      example: 1
+                    createdAt:
+                      type: string
+                      format: date-time
+                      example: "2021-09-30T12:00:00Z"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+    post:
+      tags:
+        - Bookmarks
+      summary: Create a bookmark
+      description: Create a bookmark for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                noteId:
+                  type: integer
+                  example: 1
+                timestamp:
+                  type: string
+                  example: "00:00:00"
+      responses:
+        201:
+          description: Memo created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bookmark created successfully"
+        400:
+          description: Bad Request (Invalid input)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid text"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+
+  /bookmarks/{bookmarkId}:
+    get:
+      tags:
+        - Bookmarks
+      summary: Get a bookmark
+      description: Retrieve a specific bookmark created by the authenticated user
+      parameters:
+        - name: bookmarkId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: A bookmark object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookmarkId:
+                    type: integer
+                    example: 1
+                  noteId:
+                    type: integer
+                    example: 1
+                  timestamp:
+                    type: string
+                    example: "00:00:00"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bookmark not found"
+    delete:
+      tags:
+        - Bookmarks
+      summary: Delete a bookmark
+      description: Delete a specific bookmark by its ID.
+      parameters:
+        - name: bookmarkId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Bookmark deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bookmark deleted successfully"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized"
+        404:
+          description: Bookmark not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bookmark not found"
+
   /folders:
     get:
       tags:
