@@ -565,39 +565,6 @@ paths:
                   message:
                     type: string
                     example: "Unauthorized"
-    delete:
-      tags:
-        - Notes
-      summary: Delete a note
-      description: Delete a specific note by its ID.
-      parameters:
-        - name: noteId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: Note deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note deleted successfully"
-        404:
-          description: Note not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found"
   /notes/search:
     get:
       tags:
@@ -1608,22 +1575,24 @@ paths:
       tags:
         - Calender
       summary: Get all notes
-      description: Retrieve all notes created by the authenticated user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                start_date:
-                  type: string
-                  format: date
-                  example: "2021-09-30"
-                end_date:
-                  type: string
-                  format: date
-                  example: "2021-10-01"
+      description: Retrieve all notes created by the authenticated user within a specified date range
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          description: The start date for retrieving notes
+          schema:
+            type: string
+            format: date
+            example: "2021-09-30"
+        - name: end_date
+          in: query
+          required: true
+          description: The end date for retrieving notes
+          schema:
+            type: string
+            format: date
+            example: "2021-10-01"
       responses:
         200:
           description: An array of note objects
