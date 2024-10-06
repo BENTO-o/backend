@@ -26,7 +26,3 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
-
-bootJar {
-	archiveFileName = 'bento.jar'
-}
