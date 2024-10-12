@@ -4,6 +4,7 @@ WORKDIR /workdir/server
 COPY build.gradle settings.gradle /workdir/server/
 COPY gradle /workdir/server/gradle
 COPY gradlew /workdir/server/
+RUN chmod +x ./gradlew
 RUN ./gradlew dependencies
 COPY src /workdir/server/src
 RUN ./gradlew build
