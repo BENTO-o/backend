@@ -1,7 +1,7 @@
 services:
   backend:
     build: backend
-    restart: always
+#    restart: always
     environment:
       - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}

@@ -1,8 +1,10 @@
 package bento.backend.service;
 
-import bento.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import bento.backend.repository.UserRepository;
+import bento.backend.domain.User;
 
 @Service
 @RequiredArgsConstructor
