@@ -1,0 +1,39 @@
+services:
+  backend:
+    build: backend
+#    restart: always
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+    networks:
+      - spring-mysql
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"  # 호스트의 8080 포트를 컨테이너의 8080 포트에 매핑
+
+  db:
+    image: mysql
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_HOST=${MYSQL_ROOT_HOST}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=${TZ}
+    ports:
+      - "3308:3306"
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - spring-mysql
+volumes:
+  db-data: {}
+networks:
+  spring-mysql: {}
