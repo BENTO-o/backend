@@ -1,6 +1,6 @@
 package bento.backend.controller;
 
-import bento.backend.service.UserService;
+import bento.backend.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +12,4 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 	private final UserService userService;
 
-	@GetMapping("/test")
-	public ResponseEntity<String> getTest() {
-		return ResponseEntity.status(HttpStatus.OK)
-			.body(userService.getTest());
-	}
 }
