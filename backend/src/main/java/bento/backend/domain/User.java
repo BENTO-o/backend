@@ -2,54 +2,89 @@ package bento.backend.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Getter;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.Collections;
 
 @Entity
 @Getter
+@NoArgsConstructor
 @Table(name = "user")
-public class User {
+public class User implements UserDetails {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "user_id")
 	private Long userId;
 
-	@NotBlank(message = "Username is mandatory")
-	@Size(min = 4, max = 20, message = "Username should be between 4 and 20 characters")
-	@Column(name = "username", nullable = false)
+	@Column(name = "username", nullable = false, unique = true)
 	private String username;
 
-	@NotBlank(message = "Password is mandatory")
-	@Size(min = 8, max = 20, message = "Password should be between 8 and 20 characters")
-	@Column(name = "password", nullable = false)
+	@Setter
+    @Column(name = "password", nullable = true)
 	private String password;
 
-	@Email(message = "Email should be valid")
-	@Column(name = "email", nullable = false)
+	@Setter
+    @Email(message = "Email should be valid")
+	@Column(name = "email", nullable = false, unique = true)
 	private String email;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "oauth_provider")
 	private OauthProvider oauthProvider;
 
-	@Column(name="oauth_provider_id")
-	private String oauthProviderId;
+	@Column(name = "oauth_provider_id", unique = true)
+	private String oauthProviderId; // 로그인 한 유저의 고유 ID
 
-	public void changePassword(String password) {
-		this.password = hashPassword(password);
+	@Enumerated(EnumType.STRING)
+	@Column(name = "role", nullable = false)
+	private Role role;
+
+	@Builder
+	public User(String username, String password, String email, Role role) {
+		this.username = username;
+		this.password = password;
+		this.email = email;
+		this.role = (role != null) ? role : Role.ROLE_USER;
 	}
 
-	private String hashPassword(String rawPassword) {
-		PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-		return passwordEncoder.encode(rawPassword);
+	@Builder
+	public User(String email, OauthProvider oauthProvider, String oauthProviderId, Role role) {
+		this.username = oauthProvider.name() + "_" + oauthProviderId;
+		this.email = email;
+		this.oauthProvider = oauthProvider;
+		this.oauthProviderId = oauthProviderId;
+		this.role = (role != null) ? role : Role.ROLE_USER;
 	}
 
-	public boolean checkPassword(String rawPassword, String hashedPassword) {
-		PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-		return passwordEncoder.matches(rawPassword, hashedPassword);
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return Collections.singletonList(new SimpleGrantedAuthority(role.name()));
 	}
 
+	@Override
+	public boolean isAccountNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isAccountNonLocked() {
+		return true;
+	}
+
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return true;
+	}
 }
