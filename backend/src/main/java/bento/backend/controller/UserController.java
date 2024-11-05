@@ -1,12 +1,10 @@
 package bento.backend.controller;
 
-import bento.backend.service.UserService;
 import bento.backend.domain.User;
 import bento.backend.dto.request.UserLoginRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
 import bento.backend.service.auth.AuthService;
 import bento.backend.service.user.UserRegistrationService;
-import bento.backend.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
-	private final UserService userService;
 	private final UserRegistrationService userRegistrationService;
-	private final PasswordService passwordService;
 	private final AuthService authService; // 로그인, 로그아웃 관련 로직
 
 	@PostMapping("/login")
