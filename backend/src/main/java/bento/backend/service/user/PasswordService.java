@@ -19,4 +19,8 @@ public class PasswordService {
         User user = userService.findByUserId(userId);
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
+
+    public String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
+    }
 }
