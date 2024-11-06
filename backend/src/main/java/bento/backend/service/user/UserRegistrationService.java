@@ -21,10 +21,10 @@ public class UserRegistrationService {
 
     public User registerUser(String username, String email, String rawPassword) {
         if (userRepository.existsByUsername(username)) {
-            throw new ConflictException(ErrorMessages.USERNAME_ALREADY_EXISTS);
+            throw new ConflictException(ErrorMessages.DUPLICATE_USERNAME_ERROR);
         }
         if (userRepository.existsByEmail(email)) {
-            throw new ConflictException(ErrorMessages.EMAIL_ALREADY_EXISTS);
+            throw new ConflictException(ErrorMessages.DUPLICATE_EMAIL_ERROR);
         }
         String encryptedPassword = passwordEncoder.encode(rawPassword);
         User user = new User(username, encryptedPassword, email);
