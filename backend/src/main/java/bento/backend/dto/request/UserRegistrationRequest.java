@@ -21,10 +21,4 @@ public class UserRegistrationRequest {
     @NotBlank(message = "Password is mandatory")
     @Size(min = 8, max = 20, message = "Password should be between 8 and 20 characters")
     private String password;
-
-    public UserRegistrationRequest(String username, String email, String password) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-    }
 }
