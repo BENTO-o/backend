@@ -16,6 +16,8 @@ body:
       label: ✅ 작업할 내용
       description: 작업이 필요한 내용을 추가해 주세요.
       value: "- [ ] todo1"
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: 📚 기타 사항
