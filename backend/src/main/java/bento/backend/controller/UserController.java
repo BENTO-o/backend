@@ -1,5 +1,6 @@
 package bento.backend.controller;
 
+import bento.backend.service.user.UserService;
 import bento.backend.domain.User;
 import bento.backend.dto.request.UserLoginRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
