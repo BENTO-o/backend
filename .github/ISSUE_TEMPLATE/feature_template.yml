@@ -18,5 +18,5 @@ body:
       value: "- [ ] todo1"
   - type: textarea
     attributes:
-      label: 📚 기타 사항
-      description: 참고 자료나 기타 사항이 있다면 작성해 주세요.
+      label: 🙋🏻 참고 자료
+      description: 참고 자료가 있다면 작성해 주세요.
