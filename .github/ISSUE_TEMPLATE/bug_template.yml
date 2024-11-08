@@ -7,14 +7,14 @@ body:
   - type: textarea
     id: problem
     attributes:
-      label: 🕵🏻 문제
+      label: 🔍 문제
       description: 무슨 문제가 발생했는지 설명해 주세요.
     validations:
       required: true
   - type: textarea
     id: description
     attributes:
-      label: 📄 설명
+      label: 📝 설명
       description: 원래 어떤 결과가 나와야 하는지 설명해 주세요.
     validations:
       required: true
