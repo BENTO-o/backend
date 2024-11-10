@@ -26,18 +26,25 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
-        //noinspection unchecked
-        Map<String, Object> attributes = (Map<String, Object>) oAuth2User.getAttributes().get("response");
+
+        Object response = oAuth2User.getAttributes().get("response");
+        if (!(response instanceof Map)) {
+            throw new ValidationException(ErrorMessages.OAUTH_RESPONSE_ERROR);
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> attributes = (Map<String, Object>) response;
 
         System.out.println("attributes: " + attributes);
+
         // Extract necessary user information from the attributes
         String email = (String)attributes.get("email");
         String name = (String) attributes.get("name");
         OauthProvider oauthProvider = OauthProvider.valueOf(userRequest.getClientRegistration().getRegistrationId().toUpperCase());
         String providerId = (String) attributes.get("id");
 
-        if (email == null) {
-            throw new ValidationException(ErrorMessages.OAUTH_EMAIL_REQUIRED);
+        if (email == null || name == null || providerId == null) {
+            throw new ValidationException(ErrorMessages.OAUTH_RESPONSE_ERROR);
         }
 
         // Check if the user already exists in the database
@@ -47,7 +54,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user = optionalUser.get();
         } else {
             // Create a new user
-            user = new User(email, oauthProvider, providerId, null);
+            user = new User(name, email, oauthProvider, providerId, null);
             userRepository.save(user);
         }
 
