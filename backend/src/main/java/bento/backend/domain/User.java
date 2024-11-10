@@ -2,6 +2,7 @@ package bento.backend.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -55,8 +56,8 @@ public class User implements UserDetails {
 	}
 
 	@Builder
-	public User(String email, OauthProvider oauthProvider, String oauthProviderId, Role role) {
-		this.username = oauthProvider.name() + "_" + oauthProviderId;
+	public User(String username, String email, OauthProvider oauthProvider, String oauthProviderId, Role role) {
+		this.username = username;
 		this.email = email;
 		this.oauthProvider = oauthProvider;
 		this.oauthProviderId = oauthProviderId;
@@ -87,4 +88,6 @@ public class User implements UserDetails {
 	public boolean isEnabled() {
 		return true;
 	}
+
+	public void setUsername(String username) { this.username = username; }
 }
