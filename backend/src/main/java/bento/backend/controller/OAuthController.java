@@ -35,7 +35,7 @@ public class OAuthController {
         }
 
         User user = customOAuth2User.getUser();
-        String accessToken = jwtTokenProvider.generateToken(user.getUsername(), user.getAuthorities());
+        String accessToken = jwtTokenProvider.generateToken(user.getUserId(), user.getRole().toString());
 
         // JWT와 사용자 이메일을 포함한 응답 반환
         return ResponseEntity.ok(new OAuthLoginResponse(user.getEmail(), accessToken));
