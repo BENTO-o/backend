@@ -1,6 +1,7 @@
 package bento.backend.service.auth;
 
 import bento.backend.constant.ErrorMessages;
+import bento.backend.domain.Role;
 import bento.backend.domain.User;
 import bento.backend.dto.request.UserLoginRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
@@ -38,7 +39,7 @@ public class AuthService {
         if (!passwordService.verifyUserPassword(user.getUserId(), password)) {
             throw new UnauthorizedException(ErrorMessages.OAUTH_EMAIL_REQUIRED_ERROR);
         }
-        return jwtTokenProvider.generateToken(username);
+        return jwtTokenProvider.generateToken(username, user.getAuthorities());
     }
 
     public User registerUser(UserRegistrationRequest request) {
@@ -53,7 +54,7 @@ public class AuthService {
             throw new ConflictException(ErrorMessages.DUPLICATE_EMAIL_ERROR);
         }
         String encryptedPassword = passwordService.encodePassword(rawPassword);
-        User user = new User(username, encryptedPassword, email);
+        User user = new User(username, encryptedPassword, email, Role.ROLE_USER);
         return userRepository.save(user);
     }
 }

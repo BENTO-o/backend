@@ -14,6 +14,8 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"  # 호스트의 8080 포트를 컨테이너의 8080 포트에 매핑
+    env_file:
+      - .env
 
   db:
     image: mysql
