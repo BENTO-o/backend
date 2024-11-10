@@ -2,20 +2,20 @@ package bento.backend.dto.response;
 
 import bento.backend.constant.ErrorMessages;
 import bento.backend.exception.UnauthorizedException;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
-@Setter
-@NoArgsConstructor
+@Builder
 public class OAuthLoginResponse {
     private String email;
     private String token;
 
     public OAuthLoginResponse(String token) {
         if (token == null || token.isEmpty()) {
-            throw new UnauthorizedException(ErrorMessages.TOKEN_MISSING_OR_INVALID);
+            throw new UnauthorizedException(ErrorMessages.OAUTH_TOKEN_INVALID_ERROR);
         }
         this.token = token;
     }
