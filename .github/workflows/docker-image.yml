@@ -23,8 +23,8 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build ./backend --tag bento/backend:${{ github.sha }}
+        docker build ./backend --tag bento3/backend:${{ github.sha }}
 
     - name: Push Docker image
       run: |
-        docker push bento/backend:${{ github.sha }}
+        docker push bento3/backend:${{ github.sha }}
