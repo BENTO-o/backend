@@ -22,15 +22,20 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch }}  # 사용자가 입력한 브랜치를 사용
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      with:
+        version: latest  # 최신 버전의 buildx 사용
+
     - name: Docker Login
       uses: docker/login-action@v3.3.0
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Build Docker image
+    - name: Build Docker image for ARM architecture
       run: |
-        docker build ./backend --tag bento3/backend:latest
+        docker buildx build --platform linux/arm64 -t bento3/backend:latest . --push
 
     - name: Push Docker image
       run: |
