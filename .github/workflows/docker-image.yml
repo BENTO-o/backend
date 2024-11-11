@@ -33,8 +33,6 @@ jobs:
 
     - name: Build Docker image for ARM architecture
       run: |
-        docker buildx build --platform linux/arm64 -t bento3/backend:latest . --push
+        docker buildx build ./backend --platform linux/arm64 -t bento3/backend:latest --push
+      # ./backend 디렉토리에서 ARM64 이미지 빌드 및 푸시
 
-    - name: Push Docker image
-      run: |
-        docker push bento3/backend:latest
