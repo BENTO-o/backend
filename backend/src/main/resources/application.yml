@@ -1,3 +1,11 @@
+server:
+  port: 443
+  ssl:
+    key-store: classpath:keystore.p12
+    key-store-password: ${SSL_PASSWORD}
+    key-store-type: PKCS12
+    enabled: true
+
 spring:
   sql:
     init:
@@ -16,13 +24,13 @@ spring:
           naver:
             client-id: ${NAVER_CLIENT_ID}
             client-secret: ${NAVER_CLIENT_SECRET}
-            redirect-uri: http://221.146.234.20/login/oauth2/code/naver
+            redirect-uri: https://221.146.234.20/login/oauth2/code/naver  # http -> https로 변경
             client-name: Naver
             scope:
               - username
               - email
               - profile_image
-            authorization-grant-type: authorization_code  # <-- Add this line
+            authorization-grant-type: authorization_code
         provider:
           naver:
             authorization-uri: https://nid.naver.com/oauth2.0/authorize
