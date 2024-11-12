@@ -2,55 +2,69 @@ package bento.backend.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.spec.SecretKeySpec;
-import java.util.*;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class JwtTokenProvider {
-    private final SecretKeySpec secretKey;
+
+    @Value("${jwt.expiration-time}")
+    private long expirationTime; // Configure in application.properties (in milliseconds)
+
+    private final SecretKey secretKey;
+    private final JwtParser jwtParser;
+    private final JwtBuilder jwtBuilder;
 
     public JwtTokenProvider(@Value("${jwt.secret-key}") String secretKey) {
-        byte[] keyBytes = Base64.getDecoder().decode(secretKey);
-        this.secretKey = new SecretKeySpec(keyBytes, SignatureAlgorithm.HS512.getJcaName());
+        this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+        this.jwtParser = Jwts.parserBuilder().setSigningKey(this.secretKey).build();
+        this.jwtBuilder = Jwts.builder().signWith(this.secretKey, SignatureAlgorithm.HS512);
     }
 
-    public String generateToken(String username, Collection<? extends GrantedAuthority> authorities) {
-        String role = authorities.stream()
-                .map(GrantedAuthority::getAuthority)
-                .findFirst()
-                .orElse("ROLE_USER"); // 기본 역할을 설정할 수 있습니다.
-        long EXPIRATION_TIME = 1000 * 60 * 30; // 30 minutes in milliseconds
+    // User ID is used as the subject, with additional claims for roles/scopes
+    public String generateToken(Long userId, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role); // Include roles or other claims as necessary
 
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("role", role)
+        return jwtBuilder
+                .setClaims(claims)
+                .setSubject(String.valueOf(userId)) // User ID as the subject
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .compact();
     }
 
-    public String getUsernameFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
+    public Long getUserIdFromToken(String token) {
+        Claims claims = jwtParser
                 .parseClaimsJws(token)
                 .getBody();
-        return claims.getSubject();
+        return Long.parseLong(claims.getSubject());
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = jwtParser
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("role", String.class);
+    }
+
+    public int getExpirationTime() {
+        return (int) expirationTime / 1000;
     }
 
     public boolean validateToken(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+            Claims claims = jwtParser.parseClaimsJws(token).getBody();
             return !claims.getExpiration().before(new Date());
         } catch (Exception e) {
             return false;
