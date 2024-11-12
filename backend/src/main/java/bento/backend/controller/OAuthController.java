@@ -1,7 +1,7 @@
 package bento.backend.controller;
 
 import bento.backend.domain.User;
-import bento.backend.dto.response.OAuthLoginResponse;
+import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.security.CustomOAuth2User;
 import bento.backend.security.JwtTokenProvider;
 import bento.backend.service.auth.CustomOAuth2UserService;
@@ -29,16 +29,9 @@ public class OAuthController {
 
     // OAuth2 인증 성공 후 JWT 발급하는 엔드포인트
     @GetMapping("/login/success")
-    public ResponseEntity<OAuthLoginResponse> loginSuccess(@AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
-        if (customOAuth2User == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 인증 실패 시 401 반환
-        }
-
-        User user = customOAuth2User.getUser();
-        String accessToken = jwtTokenProvider.generateToken(user.getUsername(), user.getAuthorities());
-
-        // JWT와 사용자 이메일을 포함한 응답 반환
-        return ResponseEntity.ok(new OAuthLoginResponse(user.getEmail(), accessToken));
+    public ResponseEntity<UserLoginResponse> loginSuccess(@AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+        UserLoginResponse response = customOAuth2UserService.login(customOAuth2User);
+        return ResponseEntity.status(200).body(response);
     }
 
     // OAuth2 인증 실패 처리 (선택적)
