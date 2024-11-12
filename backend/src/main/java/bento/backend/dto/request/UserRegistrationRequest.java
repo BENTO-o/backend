@@ -11,10 +11,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class UserRegistrationRequest {
-    @NotBlank(message = "Username is mandatory")
-    @Size(min = 4, max = 20, message = "Username should be between 4 and 20 characters")
+    @Size(max = 20, message = "Username should be less than 20 characters")
     private String username;
 
+    @NotBlank(message = "Email is mandatory")
     @Email(message = "Email should be valid")
     private String email;
 

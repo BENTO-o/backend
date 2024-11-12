@@ -55,8 +55,8 @@ public class User implements UserDetails {
 	}
 
 	@Builder
-	public User(String email, OauthProvider oauthProvider, String oauthProviderId, Role role) {
-		this.username = oauthProvider.name() + "_" + oauthProviderId;
+	public User(String username, String email, OauthProvider oauthProvider, String oauthProviderId, Role role) {
+		this.username = username;
 		this.email = email;
 		this.oauthProvider = oauthProvider;
 		this.oauthProviderId = oauthProviderId;
