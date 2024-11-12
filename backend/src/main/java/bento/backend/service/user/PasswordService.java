@@ -15,8 +15,7 @@ public class PasswordService {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 
-    public boolean verifyUserPassword(Long userId, String rawPassword) {
-        User user = userService.findByUserId(userId);
+    public boolean verifyUserPassword(User user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
 
