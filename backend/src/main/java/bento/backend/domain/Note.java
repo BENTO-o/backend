@@ -26,8 +26,17 @@ public class Note {
 	@Column(name = "title")
 	private String title;
 
-	@Column(name = "content")
+	// JSON array of script objects. This is a response from the Naver Speech-to-Text API.
+	// This is a temporary solution. We will change this to a list of script objects.
+	@Column(name = "content", columnDefinition = "json")
 	private String content;
+
+//	example
+//	@Column(name = "speakers", columnDefinition = "json")
+//	private String speakers;
+//
+//	@Column(name = "script", columnDefinition = "json")
+//	private String script;
 
 	@CreatedDate
 	@Column(name = "created_at", nullable = false)
@@ -56,17 +65,6 @@ public class Note {
 
 	@OneToOne(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Summary summary;
-
-	@OneToMany(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<Script> scripts;
-
-//	@ElementCollection
-//	@CollectionTable(
-//			name = "note_speakers",
-//			joinColumns = @JoinColumn(name = "note_id")
-//	)
-//	@Column(name = "speaker")
-//	private List<String> speakers;
 
 //	public void update(String title, String folder) {
 //		if (title != null) this.title = title;
