@@ -50,10 +50,17 @@ public class UserController {
 	}
 
 	@PatchMapping("/me")
-	public ResponseEntity<User> updateUser(@RequestHeader("Authorization") String token, @Valid @RequestBody UserUpdateRequest request) {
+	public ResponseEntity<UserProfileResponse> updateUser(@RequestHeader("Authorization") String token, @Valid @RequestBody UserUpdateRequest request) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 		User updatedUser = userService.updateUser(user.getUserId(), request);
-		return ResponseEntity.ok(updatedUser);
+		UserProfileResponse currentUser = new UserProfileResponse(
+				updatedUser.getUserId(),
+				updatedUser.getUsername(),
+				updatedUser.getEmail(),
+				updatedUser.getRole().toString(),
+				updatedUser.getOauthProviderId()
+		);
+		return ResponseEntity.ok(currentUser);
 	}
 }
 
