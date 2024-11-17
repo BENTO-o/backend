@@ -43,11 +43,4 @@ public class GlobalExceptionHandler {
         HttpStatus status = ex.getClass().getAnnotation(ResponseStatus.class).value();
         return buildResponseEntity("Undefined Error", ex.getMessage(), status);
     }
-
-    // @ResponseStatus 애노테이션에서 상태 코드 가져오기 (없을 경우 INTERNAL_SERVER_ERROR 반환)
-    @ResponseStatus
-    private HttpStatus getResponseStatus(Exception ex) {
-        ResponseStatus statusAnnotation = ex.getClass().getAnnotation(ResponseStatus.class);
-        return (statusAnnotation != null) ? statusAnnotation.value() : HttpStatus.INTERNAL_SERVER_ERROR;
-    }
 }

@@ -1,10 +1,3 @@
-server:
-  ssl:
-    enabled: true
-    key-store-type: PEM
-    key-store: ${FULLCHAIN_PATH}
-    trust-store: ${PRIVATE_KEY_PATH}
-
 spring:
   sql:
     init:
