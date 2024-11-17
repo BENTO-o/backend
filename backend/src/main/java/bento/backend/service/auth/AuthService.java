@@ -28,7 +28,7 @@ public class AuthService {
     public UserLoginResponse login (UserLoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
-        User user = userService.findByUsername(email);
+        User user = userService.findByEmail(email);
         if (!passwordService.verifyUserPassword(user.getUserId(), password)) {
             throw new UnauthorizedException(ErrorMessages.OAUTH_EMAIL_REQUIRED_ERROR);
         }
