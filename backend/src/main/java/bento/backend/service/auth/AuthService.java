@@ -4,6 +4,8 @@ import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.Role;
 import bento.backend.domain.User;
 import bento.backend.dto.request.UserLoginRequest;
+import bento.backend.dto.request.UserPasswordResetExecutionRequest;
+import bento.backend.dto.request.UserPasswordResetRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
 import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.exception.ConflictException;
@@ -12,25 +14,29 @@ import bento.backend.repository.UserRepository;
 import bento.backend.security.JwtTokenProvider;
 import bento.backend.service.user.PasswordService;
 import bento.backend.service.user.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
+import org.springframework.mail.javamail.JavaMailSender;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-//    Authorization과 Authentication을 처리하는 서비스입니다.
+    //    Authorization과 Authentication을 처리하는 서비스입니다.
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordService passwordService;
+    private final JavaMailSender mailSender;
 
-//    Authentication
+    //    Authentication
     public UserLoginResponse login (UserLoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
         User user = userService.findByEmail(email);
-        if (!passwordService.verifyUserPassword(user.getUserId(), password)) {
-            throw new UnauthorizedException(ErrorMessages.OAUTH_EMAIL_REQUIRED_ERROR);
+        if (!userService.verifyUserPassword(user.getUserId(), password)) {
+            throw new UnauthorizedException(ErrorMessages.CREDENTIALS_INVALID_ERROR);
         }
         String token = jwtTokenProvider.generateToken(user.getUserId(), String.valueOf(user.getRole()));
         int expiresIn = jwtTokenProvider.getExpirationTime();
@@ -53,7 +59,7 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-//    Authorization
+    //    Authorization
     public User getUserFromToken(String token) {
         if (!jwtTokenProvider.validateToken(token)) {
             throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
@@ -69,5 +75,44 @@ public class AuthService {
         }
         String role = jwtTokenProvider.getRoleFromToken(token);
         return role.equals(Role.ROLE_ADMIN.toString());
+    }
+
+    public void requestPasswordReset(@Valid UserPasswordResetRequest request) {
+        String email = request.getEmail();
+        User user = userService.findByEmail(email);
+        if (user == null) {
+            throw new UnauthorizedException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email);
+        }
+        // 비밀번호 재설정 토큰 생성
+        String token = jwtTokenProvider.generateResetToken(email);
+
+        // 재설정 링크 생성
+        String resetLink = "https://bento-o.site/reset-password?token=" + token;
+
+        // 이메일 전송
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Password Reset Verification");
+        message.setText("We received a request to reset your password. Please verify your identity by clicking the link below:\n\n" +
+                resetLink + "\n\n" +
+                "If you did not request a password reset, please ignore this email.\n\n" +
+                "Thanks,\nTeam Bento");
+        mailSender.send(message);
+    }
+
+    public void resetPassword(@Valid UserPasswordResetExecutionRequest request) {
+        String token = request.getToken();
+        String password = request.getPassword();
+        String email = jwtTokenProvider.getEmailFromResetToken(token);
+        User user = userService.findByEmail(email);
+        String encryptedPassword = passwordService.encodePassword(password);
+        user.setPassword(encryptedPassword);
+        userRepository.save(user);
+    }
+
+    public void verifyResetPasswordToken(String token) {
+        if (!jwtTokenProvider.validateResetToken(token)) {
+            throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
+        }
     }
 }
