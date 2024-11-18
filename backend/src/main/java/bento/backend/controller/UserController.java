@@ -1,11 +1,9 @@
 package bento.backend.controller;
 
 import bento.backend.constant.SuccessMessages;
-import bento.backend.dto.request.UserUpdateRequest;
+import bento.backend.dto.request.*;
 import bento.backend.service.user.UserService;
 import bento.backend.domain.User;
-import bento.backend.dto.request.UserLoginRequest;
-import bento.backend.dto.request.UserRegistrationRequest;
 import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.dto.response.UserProfileResponse;
 import bento.backend.service.auth.AuthService;
@@ -36,6 +34,28 @@ public class UserController {
 		return ResponseEntity.status(201).body(response);
 	}
 
+	@PostMapping("/request-password-reset")
+	public ResponseEntity<Map<String, String>> requestPasswordReset(@Valid @RequestBody UserPasswordResetRequest request) {
+		authService.requestPasswordReset(request);
+		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_RESET_REQUEST);
+		return ResponseEntity.status(200).body(response);
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody UserPasswordResetExecutionRequest request) {
+		authService.resetPassword(request);
+		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_RESET);
+		return ResponseEntity.status(200).body(response);
+	}
+
+	@GetMapping("/reset-password/verify")
+	public ResponseEntity<Map<String, String>> verifyResetPasswordToken(@RequestParam String token) {
+		authService.verifyResetPasswordToken(token);
+		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_RESET_TOKEN_VERIFIED);
+		return ResponseEntity.status(200).body(response);
+	}
+
+
 	@GetMapping("/me")
 	public ResponseEntity<UserProfileResponse> getCurrentUser(@RequestHeader("Authorization") String token) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
@@ -61,6 +81,22 @@ public class UserController {
 				updatedUser.getOauthProviderId()
 		);
 		return ResponseEntity.ok(currentUser);
+	}
+
+	@DeleteMapping("/me")
+	public ResponseEntity<Map<String, String>> deleteUser(@RequestHeader("Authorization") String token) {
+		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+		userService.deactivateUser(user.getUserId());
+		Map<String, String> response = Map.of("message", SuccessMessages.USER_DEACTIVATED);
+		return ResponseEntity.status(200).body(response);
+	}
+
+	@PutMapping("/me/password")
+	public ResponseEntity<Map<String, String>> updatePassword(@RequestHeader("Authorization") String token, @Valid @RequestBody UserPasswordUpdateRequest request) {
+		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+		userService.updatePassword(user.getUserId(), request);
+		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_UPDATED);
+		return ResponseEntity.status(200).body(response);
 	}
 }
 

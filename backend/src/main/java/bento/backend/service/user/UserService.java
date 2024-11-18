@@ -1,6 +1,7 @@
 package bento.backend.service.user;
 
 import bento.backend.constant.ErrorMessages;
+import bento.backend.dto.request.UserPasswordUpdateRequest;
 import bento.backend.dto.request.UserUpdateRequest;
 import bento.backend.exception.BadRequestException;
 import bento.backend.exception.ConflictException;
@@ -14,8 +15,9 @@ import bento.backend.domain.User;
 
 @Service
 @RequiredArgsConstructor
-public class UserService { // 기존의 사용자 조회, 업데이트, 삭제 등의 일반적인 CRUD 작업을 처리합니다.
+public class UserService {
 	private final UserRepository userRepository;
+	private final PasswordService passwordService;
 
 	public User findByUserId(final Long userId) {
 		return userRepository.findById(userId)
@@ -30,6 +32,11 @@ public class UserService { // 기존의 사용자 조회, 업데이트, 삭제 �
 	public User findByEmail(String email) {
 		return userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email));
+	}
+
+	public boolean verifyUserPassword(Long userId, String rawPassword) {
+		User user = findByUserId(userId);
+		return passwordService.verifyPassword(rawPassword, user.getPassword());
 	}
 
 	public User updateEmail(Long userId, String newEmail) {
@@ -66,13 +73,29 @@ public class UserService { // 기존의 사용자 조회, 업데이트, 삭제 �
 		return user;
 	}
 
-
-    public User updateUser(Long userId, @Valid UserUpdateRequest request) {
+	public User updateUser(Long userId, @Valid UserUpdateRequest request) {
 		User user = findByUserId(userId);
 		if (userRepository.existsByUsername(request.getUsername()) && !request.getUsername().equals(user.getUsername())) {
-			throw new ConflictException(String.format(ErrorMessages.USERNAME_ALREADY_EXISTS, request.getUsername()));
+			throw new ConflictException(String.format(ErrorMessages.DUPLICATE_USERNAME_ERROR, request.getUsername()));
 		}
 		user.setUsername(request.getUsername());
 		return userRepository.save(user);
-    }
+	}
+
+	public void deactivateUser(Long userId) {
+		User user = findByUserId(userId);
+		user.setActive(false);
+		userRepository.save(user);
+	}
+
+	public void updatePassword(Long userId, @Valid UserPasswordUpdateRequest request) {
+		User user = findByUserId(userId);
+		if (!verifyUserPassword(userId, request.getCurrentPassword())) {
+			throw new BadRequestException(ErrorMessages.PASSWORD_INCORRECT_ERROR);
+		}
+		String newPassword = request.getNewPassword();
+		String encryptedPassword = passwordService.encodePassword(newPassword);
+		user.setPassword(encryptedPassword);
+		userRepository.save(user);
+	}
 }
