@@ -27,7 +27,6 @@ services:
       - TZ=${TZ}
     ports:
       - "3308:3306"
-    restart: always
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 3s

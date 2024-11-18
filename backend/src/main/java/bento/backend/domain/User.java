@@ -2,6 +2,7 @@ package bento.backend.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ public class User implements UserDetails {
 	@Column(name = "user_id")
 	private Long userId;
 
+	@Setter
 	@Column(name = "username", nullable = false, unique = true)
 	private String username;
 
@@ -63,6 +65,10 @@ public class User implements UserDetails {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "role", nullable = false)
 	private Role role;
+
+	@Column(name = "is_active", nullable = false)
+	@Setter
+	private boolean isActive = true; // 기본값: 활성 상태
 
 	@Builder
 	public User(String username, String password, String email, Role role) {
@@ -107,6 +113,6 @@ public class User implements UserDetails {
 
 	@Override
 	public boolean isEnabled() {
-		return true;
+		return isActive;
 	}
 }
