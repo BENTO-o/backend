@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,7 @@ public class JwtTokenProvider {
         this.jwtBuilder = Jwts.builder().signWith(this.secretKey, SignatureAlgorithm.HS512);
     }
 
-    // User ID is used as the subject, with additional claims for roles/scopes
+//    Token generation
     public String generateToken(Long userId, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role); // Include roles or other claims as necessary
@@ -69,5 +71,28 @@ public class JwtTokenProvider {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public boolean validateResetToken(String token) {
+        try {
+            jwtParser.parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    //    Password reset token generation
+    public String generateResetToken(String email) {
+        return jwtBuilder
+                .setSubject(email) // 해시된 이메일 사용
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 600000))
+                .signWith(SignatureAlgorithm.HS256, secretKey)
+                .compact();
+    }
+
+    public String getEmailFromResetToken(String token) {
+        return jwtParser.parseClaimsJws(token).getBody().getSubject();
     }
 }
