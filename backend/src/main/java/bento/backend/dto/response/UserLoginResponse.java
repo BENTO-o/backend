@@ -1,5 +1,6 @@
 package bento.backend.dto.response;
 
+import bento.backend.constant.SuccessMessages;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -14,7 +15,7 @@ public class UserLoginResponse {
     // Optional: 정적 팩토리 메서드를 통해 반환 객체를 쉽게 생성
     public static UserLoginResponse of(String accessToken, int expiresIn) {
         return UserLoginResponse.builder()
-                .message("Login successful")
+                .message(SuccessMessages.USER_LOGGED_IN)
                 .accessToken(accessToken)
                 .tokenType("Bearer")
                 .expiresIn(expiresIn)

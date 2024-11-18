@@ -3,9 +3,11 @@ package bento.backend.service.auth;
 import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.OauthProvider;
 import bento.backend.domain.User;
+import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.exception.ValidationException;
 import bento.backend.repository.UserRepository;
 import bento.backend.security.CustomOAuth2User;
+import bento.backend.security.JwtTokenProvider;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -20,44 +22,53 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
-
     private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
+        Map<String, Object> attributes = extractAttributes(oAuth2User);
+        String email = (String) attributes.get("email");
+        String name = (String) attributes.get("name");
+        String providerId = (String) attributes.get("id");
+
+        validateAttributes(email, name, providerId);
+
+        OauthProvider oauthProvider = OauthProvider.valueOf(
+                userRequest.getClientRegistration().getRegistrationId().toUpperCase()
+        );
+
+        User user = findOrCreateUser(email, name, oauthProvider, providerId);
+
+        return new CustomOAuth2User(user, oAuth2User.getAttributes());
+    }
+
+    private Map<String, Object> extractAttributes(OAuth2User oAuth2User) {
         Object response = oAuth2User.getAttributes().get("response");
         if (!(response instanceof Map)) {
             throw new ValidationException(ErrorMessages.OAUTH_RESPONSE_ERROR);
         }
+        return (Map<String, Object>) response;
+    }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> attributes = (Map<String, Object>) response;
-
-        System.out.println("attributes: " + attributes);
-
-        // Extract necessary user information from the attributes
-        String email = (String)attributes.get("email");
-        String name = (String) attributes.get("name");
-        OauthProvider oauthProvider = OauthProvider.valueOf(userRequest.getClientRegistration().getRegistrationId().toUpperCase());
-        String providerId = (String) attributes.get("id");
-
+    private void validateAttributes(String email, String name, String providerId) {
         if (email == null || name == null || providerId == null) {
             throw new ValidationException(ErrorMessages.OAUTH_RESPONSE_ERROR);
         }
+    }
 
-        // Check if the user already exists in the database
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        User user;
-        if (optionalUser.isPresent()) {
-            user = optionalUser.get();
-        } else {
-            // Create a new user
-            user = new User(name, email, oauthProvider, providerId, null);
-            userRepository.save(user);
-        }
+    private User findOrCreateUser(String email, String name, OauthProvider provider, String providerId) {
+        return userRepository.findByEmail(email).orElseGet(() -> {
+            User newUser = new User(name, email, provider, providerId, null);
+            return userRepository.save(newUser);
+        });
+    }
 
-        return new CustomOAuth2User(user, oAuth2User.getAttributes());
+    public UserLoginResponse login(CustomOAuth2User customOAuth2User) {
+        User user = customOAuth2User.getUser();
+        String token = jwtTokenProvider.generateToken(user.getUserId(), String.valueOf(user.getRole()));
+        return UserLoginResponse.of(token, jwtTokenProvider.getExpirationTime());
     }
 }
