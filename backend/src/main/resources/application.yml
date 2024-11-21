@@ -47,3 +47,7 @@ jwt:
   expiration-time: ${JWT_EXPIRATION_TIME}
 
 allowed-origin: ${ALLOWED_ORIGIN}
+
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH}

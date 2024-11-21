@@ -31,13 +31,6 @@ public class Note {
 	@Column(name = "content", columnDefinition = "json")
 	private String content;
 
-//	example
-//	@Column(name = "speakers", columnDefinition = "json")
-//	private String speakers;
-//
-//	@Column(name = "script", columnDefinition = "json")
-//	private String script;
-
 	@CreatedDate
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
@@ -66,13 +59,13 @@ public class Note {
 	@OneToOne(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Summary summary;
 
-//	public void update(String title, String folder) {
-//		if (title != null) this.title = title;
-//		if (folder != null) this.folder = folder;
-//	}
-
 	public String getFormattedDateTime(LocalDateTime dateTime) {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 		return dateTime.format(formatter);
+	}
+
+	public void update(String title, String folder) {
+		if (title != null) this.title = title;
+		if (folder != null) this.folder = folder;
 	}
 }
