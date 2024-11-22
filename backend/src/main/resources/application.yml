@@ -41,6 +41,10 @@ spring:
           starttls:
             enable: true
     protocol: smtp
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}

@@ -18,6 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/notes")
@@ -26,9 +30,15 @@ public class NoteController {
 	public final NoteService noteService;
 	public final FileService fileService;
 
+	// 파일 다운로드
+	@GetMapping("/download/{fileName}")
+	public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
+		return fileService.downloadFile(fileName);
+	}
+
 	// 노트 생성
 	@PostMapping("")
-	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @RequestParam MultiPartFile file) {
+	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @RequestParam MultipartFile file) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
 		// 파일 업로드
