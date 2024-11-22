@@ -23,7 +23,7 @@ paths:
         - Users
       summary: Register a new user
       description: Registers a new user in the system.
-      operationId: register
+      operationId: postUserRegister
       requestBody:
         required: true
         content:
@@ -90,7 +90,7 @@ paths:
         - Users
       summary: Login
       description: Login to the system with email and password.
-      operationId: login
+      operationId: postUserLogin
       requestBody:
         required: true
         content:
@@ -160,7 +160,7 @@ paths:
         - Users
       summary: Get current user information
       description: Retrieves the authenticated user's information using a valid JWT token.
-      operationId: getCurrentUser
+      operationId: getUserProfile
       security:
         - bearerAuth: []
       responses:
@@ -201,7 +201,7 @@ paths:
         - Users
       summary: Update current user's information
       description: Partially updates the authenticated user's information.
-      operationId: updateUser
+      operationId: patchUserProfile
       security:
         - bearerAuth: []
       requestBody:
@@ -253,7 +253,7 @@ paths:
         - Users
       summary: Delete current user
       description: Deletes the authenticated user from the system.
-      operationId: deleteUser
+      operationId: deleteUserProfile
       security:
         - bearerAuth: []
       responses:
@@ -283,7 +283,7 @@ paths:
         - Users
       summary: Change user password
       description: Updates the password for the authenticated user.
-      operationId: updatePassword
+      operationId: putUserPassword
       security:
         - bearerAuth: []
       requestBody:
@@ -345,7 +345,7 @@ paths:
         - Users
       summary: Request password reset
       description: Requests a password reset email for a user.
-      operationId: requestPasswordReset
+      operationId: postUserPasswordResetRequest
       requestBody:
         required: true
         content:
@@ -406,7 +406,7 @@ paths:
         - Users
       summary: Verify password reset token
       description: Verifies the password reset token sent to the user's email.
-      operationId: verifyPasswordResetToken
+      operationId: postUserPasswordResetVerify
       requestBody:
         required: true
         content:
@@ -446,7 +446,7 @@ paths:
         - Users
       summary: Reset password
       description: Resets the password for the user after verifying the token.
-      operationId: resetPassword
+      operationId: postUserPasswordReset
       requestBody:
         required: true
         content:
