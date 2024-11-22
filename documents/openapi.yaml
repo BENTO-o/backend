@@ -1,165 +1,29 @@
 openapi: 3.0.0
 info:
-  title: STT API
-  description: API documentation for the STT site
+  title: Bento API
+  description: API documentation for the Bento site user management system
   version: 1.0.0
 servers:
-  - url: http://localhost:8000
+  - url: https://bento-o.site
+    description: Secure server (HTTPS)
+  - url: http://bento-o.site
+    description: Insecure server (HTTP for local testing)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # Optional, but clarifies the token type.
 
 paths:
-  /users/login:
-    post:
-      tags:
-        - Users
-      summary: Login
-      description: Login to the system
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "user@example.com"
-                password:
-                  type: string
-                  format: password
-                  example: "password123"
-      responses:
-        200:
-          description: Successful login, JWT token issued
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Login successful
-                  access_token:
-                    type: string
-                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJpYXQiOjE2MzA0NjQwNzIsImV4cCI6MTYzMDQ2NzY3Mn0.7
-                  token_type:
-                    type: string
-                    example: "Bearer"
-                  expires_in:
-                    type: integer
-                    example: 3600
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid email or password"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-  /oauth/login:
-    post:
-      tags:
-        - Users
-      summary: Login with OAuth
-      description: Login to the system using OAuth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                oauth_provider:
-                  type: string
-                  example: google
-                oauth_provider_id:
-                  type: string
-                  example: 12345
-      responses:
-        200:
-          description: Successful login, JWT token issued
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Login successful
-                  access_token:
-                    type: string
-                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJpYXQiOjE2MzA0NjQwNzIsImV4cCI6MTYzMDQ2NzY3Mn0.7
-                  token_type:
-                    type: string
-                    example: "Bearer"
-                  expires_in:
-                    type: integer
-                    example: 3600
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid email or password"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-  /users/logout:
-    post:
-      tags:
-        - Users
-      summary: Logout
-      description: Logout from the system
-      responses:
-        200:
-          description: Logout successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Logout successful"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
   /users/register:
     post:
       tags:
         - Users
-      summary: Register
-      description: Register a new user
+      summary: Register a new user
+      description: Registers a new user in the system.
+      operationId: register
       requestBody:
         required: true
         content:
@@ -169,16 +33,19 @@ paths:
               properties:
                 username:
                   type: string
-                  example: "user1"
+                  example: "이땡땡"
                 email:
                   type: string
                   format: email
-                  example: "user@example.com"
+                  example: "eflnwkfew@naver.com"
                 password:
                   type: string
                   format: password
-                  example: "password123"
-                  description: Password must be encrypted before sending
+                  example: "fieubweiubdiuwe"
+              required:
+                - username
+                - email
+                - password
       responses:
         201:
           description: User registered successfully
@@ -191,7 +58,22 @@ paths:
                     type: string
                     example: "User registered successfully"
         400:
-          description: Bad Request (Invalid input)
+          description: Validation failed for the input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: string
+                example:
+                  username: "Username should be less than 20 characters"
+                  email: "Email is mandatory"
+                  password: "Password should be between 8 and 20 characters"
+        409:
+          description: Conflict
           content:
             application/json:
               schema:
@@ -199,14 +81,16 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Invalid email"
-
-  /users/reset-password:
+                example:
+                  username: "The username '%s' is already in use. Please select a different username."
+                  email: "An account with the email '%s' already exists. Please choose another email."
+  /users/login:
     post:
       tags:
         - Users
-      summary: Reset password
-      description: Reset the user's password
+      summary: Login
+      description: Login to the system with email and password.
+      operationId: login
       requestBody:
         required: true
         content:
@@ -214,19 +98,20 @@ paths:
             schema:
               type: object
               properties:
-                reset_token:
+                email:
                   type: string
-                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                new_password:
+                  format: email
+                  example: "eflnwkfew@naver.com"
+                password:
                   type: string
                   format: password
-                  example: "new_password123"
+                  example: "fieubweiubdiuwe"
               required:
-                - reset_token
-                - new_password
+                - email
+                - password
       responses:
         200:
-          description: Password reset successful
+          description: Successful login
           content:
             application/json:
               schema:
@@ -234,59 +119,31 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Password reset successful"
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
+                    example: "Login successful"
+                  access_token:
                     type: string
-                    example: "Invalid reset token"
-        401:
-          description: Unauthorized (Invalid or missing token)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
+                    example: "eyJhbGciOiJIUzUxMiJ9..."
+                  token_type:
                     type: string
-                    example: "Unauthorized"
-
-  /users/me:
-    get:
-      tags:
-        - Users
-      summary: Get current user
-      description: Retrieve the authenticated user's information using the JWT token.
-      responses:
-        200:
-          description: A user object
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  userId:
+                    example: "Bearer"
+                  expires_in:
                     type: integer
-                    example: 1
-                  username:
-                    type: string
-                    example: user1
-                  email:
-                    type: string
-                    example: "user@example.com"
-                  oauth_provider:
-                    type: string
-                    nullable: true
-                    example: null
-                  oauth_provider_id:
-                    type: string
-                    nullable: true
-                    example: null
+                    example: 3600
+        400:
+          description: Validation failed for the input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: string
+                example:
+                  username: "Username should be less than 20 characters"
+                  email: "Email is mandatory"
+                  password: "Password should be between 8 and 20 characters"
         401:
           description: Unauthorized
           content:
@@ -296,12 +153,57 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Unauthorized"
+                    example: "Authentication failed: Invalid credentials provided."
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user information
+      description: Retrieves the authenticated user's information using a valid JWT token.
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: A user object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: "이땡땡"
+                  email:
+                    type: string
+                    example: "eflnwkfew@naver.com"
+                  role:
+                    type: string
+                    enum: [ "ROLE_USER", "ROLE_ADMIN" ]
+                  oauth_provider_id:
+                    type: string
+                    example: "xgV3Wue29fhU4HK99xYwNg=="
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "The provided token is invalid. Please check and provide a valid token."
     patch:
       tags:
         - Users
-      summary: Partially update current user
-      description: Update specific fields of the authenticated user's information
+      summary: Update current user's information
+      description: Partially updates the authenticated user's information.
+      operationId: updateUser
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -311,11 +213,7 @@ paths:
               properties:
                 username:
                   type: string
-                  example: "new_username"
-                email:
-                  type: string
-                  format: email
-                  example: "new_email@example.com"
+                  example: "이점점"
       responses:
         200:
           description: User updated successfully
@@ -328,15 +226,18 @@ paths:
                     type: string
                     example: "User updated successfully"
         400:
-          description: Bad Request (Invalid input)
+          description: Validation failed for the input data
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: "Invalid email"
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: string
+                example:
+                  username: "Username should be less than 20 characters"
         401:
           description: Unauthorized
           content:
@@ -346,12 +247,15 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Unauthorized"
+                    example: "The provided token is invalid. Please check and provide a valid token."
     delete:
       tags:
         - Users
       summary: Delete current user
-      description: Delete the authenticated user's account
+      description: Deletes the authenticated user from the system.
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
       responses:
         200:
           description: User deleted successfully
@@ -362,7 +266,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "User deleted successfully"
+                    example: "User deactivated successfully"
         401:
           description: Unauthorized
           content:
@@ -372,23 +276,16 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User not found"
+                    example: "The provided token is invalid. Please check and provide a valid token."
   /users/me/password:
     put:
       tags:
         - Users
-      summary: Update current user's password
-      description: Allows the authenticated user to change their password using the JWT token.
+      summary: Change user password
+      description: Updates the password for the authenticated user.
+      operationId: updatePassword
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -396,20 +293,20 @@ paths:
             schema:
               type: object
               properties:
-                current_password:
+                currentPassword:
                   type: string
                   format: password
-                  example: "password123"
-                new_password:
+                  example: "fieubweiubdiuwe"
+                newPassword:
                   type: string
                   format: password
-                  example: "new_password123"
+                  example: "sfnksjfbnksf"
               required:
-                - current_password
-                - new_password
+                - currentPassword
+                - newPassword
       responses:
         200:
-          description: Password changed successfully
+          description: Password updated successfully
           content:
             application/json:
               schema:
@@ -419,142 +316,19 @@ paths:
                     type: string
                     example: "Password changed successfully"
         400:
-          description: Bad Request (Invalid input)
+          description: Validation failed for the input data
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: "Invalid password"
-        401:
-          description: Unauthorized (Invalid or missing token)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        403:
-          description: Forbidden (Current password is incorrect)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Current password is incorrect"
-
-  /notes:
-    get:
-      tags:
-        - Notes
-      summary: Get all notes
-      description: Retrieve all notes created by the authenticated user
-      responses:
-        200:
-          description: An array of note objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    noteId:
-                      type: integer
-                      example: 1
-                    title:
-                      type: string
-                      example: "Note 1"
-                    folder:
-                      type: string
-                      example: "Deep Learning"
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: "2021-09-30T12:00:00Z"
-                    duration:
-                      type: integer
-                      example: "01:30:00"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-    post:
-      tags:
-        - Notes
-      summary: Create a note
-      description: Create a note for the authenticated user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                  example: "Note 1"
-                folder:
-                  type: string
-                  example: "Deep Learning"
-                duration:
-                  type: integer
-                  example: "01:30:00"
-                speaker:
-                  type: array
-                  items:
-                    type: string
-                  example: [ "Speaker 1", "Speaker 2" ]
-                script:
-                  type: array
-                  items:
+                  errors:
                     type: object
-                    properties:
-                      speaker:
-                        type: string
-                        example: "Speaker 1"
-                      text:
-                        type: string
-                        example: "This is the text"
-                      timestamp:
-                        type: string
-                        example: "00:00:00"
-                      memo:
-                        type: string
-                        example: "This is a memo"
-      responses:
-        201:
-          description: Note created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note created successfully"
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid title"
+                    additionalProperties:
+                      type: string
+                example:
+                  currentPassword: "Password should be between 8 and 20 characters"
+                  newPassword: "Password should be between 8 and 20 characters"
         401:
           description: Unauthorized
           content:
@@ -564,501 +338,30 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Unauthorized"
-  /notes/search:
-    get:
-      tags:
-        - Search
-      summary: Search notes by title or content
-      description: Search notes created by the authenticated user based on title or content.
-      parameters:
-        - name: query
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "Deep Learning"
-          description: The search query to look for in note titles or content.
-      responses:
-        200:
-          description: An array of note objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    noteId:
-                      type: integer
-                      example: 1
-                    title:
-                      type: string
-                      example: Deep Learning Concepts"
-                    content:
-                      type: string
-                      example: "This note discusses the fundamental concepts of deep learning."
-                    folder:
-                      type: string
-                      example: "AI Research"
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: "2023-09-30T12:00:00Z"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found"
-
-  /notes/{noteId}:
-    get:
-      tags:
-        - Notes
-      summary: Get a note
-      description: Retrieve a specific note created by the authenticated user
-      parameters:
-        - name: noteId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: A note object
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  noteId:
-                    type: integer
-                    example: 1
-                  title:
-                    type: string
-                    example: "Note 1"
-                  folder:
-                    type: string
-                    example: "Deep Learning"
-                  createdAt:
-                    type: string
-                    format: date-time
-                    example: "2021-09-30T12:00:00Z"
-                  duration:
-                    type: integer
-                    example: "01:30:00"
-                  speaker:
-                    type: array
-                    items:
-                      type: string
-                      example: ["Speaker 1", "Speaker 2"]
-                  script:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        speaker:
-                          type: string
-                          example: "Speaker 1"
-                        text:
-                          type: string
-                          example: "This is the text"
-                        timestamp:
-                          type: string
-                          example: "00:00:00"
-                        memo:
-                          type: string
-                          example: "This is a memo"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found"
-    patch:
-      tags:
-        - Notes
-      summary: Partially update a note
-      description: Update specific fields of a note created by the authenticated user
-      parameters:
-        - name: noteId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                  example: "New Title"
-                folder:
-                  type: string
-      responses:
-        200:
-          description: Note updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note updated successfully"
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid title"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found"
-    delete:
-      tags:
-        - Notes
-      summary: Delete a note
-      description: Delete a note created by the authenticated user
-      parameters:
-        - name: noteId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: Note deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note deleted successfully"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found"
-  /notes/{noteId}/ai-summary:
-    get:
-      tags:
-        - Notes
-      summary: Get AI-generated summary
-      description: Retrieve an AI-generated summary of a note created by the authenticated user
-      parameters:
-        - name: noteId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: An AI-generated summary object
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  summary:
-                    type: string
-                    example: "This is the AI-generated summary"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "summary not found"
-  /notes/{noteId}/search:
-    get:
-      tags:
-        - Search
-      summary: Search within a single note
-      description: Search for specific text within the note's content, AI-summary, and memo.
-      parameters:
-        - name: noteId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-          description: The ID of the note to search within.
-        - name: query
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "neural networks"
-          description: The search query to look for in the note's content, AI-summary, or memo.
-      responses:
-        200:
-          description: Search results within the note
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  noteId:
-                    type: integer
-                    example: 1
-                  title:
-                    type: string
-                    example: "Deep Learning Concepts"
-                  content_matches:
-                    type: array
-                    description: Matches found in the note's content
-                    items:
-                      type: string
-                      example: "Neural networks are a class of models within the machine learning field."
-                  ai_summary_matches:
-                    type: array
-                    description: Matches found in the AI-generated summary
-                    items:
-                      type: string
-                      example: "This note provides an overview of neural networks."
-                  memo_matches:
-                    type: array
-                    description: Matches found in the memo
-                    items:
-                      type: string
-                      example: "Research more on neural networks for the next meeting."
-        404:
-          description: Not Found (Note or query not found)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found or no matches for the query"
-        401:
-          description: Unauthorized (Invalid or missing token)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-
-  /memos:
-    get:
-      tags:
-        - Memos
-      summary: Get all memos
-      description: Retrieve all memos created by the authenticated user
-      responses:
-        200:
-          description: An array of memo objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    memoId:
-                      type: integer
-                      example: 1
-                    noteId:
-                      type: integer
-                      example: 1
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: "2021-09-30T12:00:00Z"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
+                    example: "The provided token is invalid. Please check and provide a valid token."
+  /users/request-password-reset:
     post:
       tags:
-        - Memos
-      summary: Create a memo
-      description: Create a memo for the authenticated user
+        - Users
+      summary: Request password reset
+      description: Requests a password reset email for a user.
+      operationId: requestPasswordReset
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - email
               properties:
-                noteId:
-                  type: integer
-                  example: 1
-                text:
+                email:
                   type: string
-                  example: "This is a memo"
-                timestamp:
-                  type: string
-                  example: "00:00:00"
-      responses:
-        201:
-          description: Memo created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Memo created successfully"
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid text"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-
-  /memos/{memoId}:
-    get:
-      tags:
-        - Memos
-      summary: Get a memo
-      description: Retrieve a specific memo created by the authenticated user
-      parameters:
-        - name: memoId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
+                  format: email
+                  example: "mlice1030@naver.com"
       responses:
         200:
-          description: A memo object
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  memoId:
-                    type: integer
-                    example: 1
-                  noteId:
-                    type: integer
-                    example: 1
-                  text:
-                    type: string
-                    example: "This is a memo"
-                  timestamp:
-                    type: string
-                    example: "00:00:00"
-                  createdAt:
-                    type: string
-                    format: date-time
-                    example: "2021-09-30T12:00:00Z"
-        401:
-          description: Unauthorized
+          description: Password reset link sent
           content:
             application/json:
               schema:
@@ -1066,7 +369,17 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Unauthorized"
+                    example: "Email sent for password reset"
+        400:
+          description: Validation failed for the input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email is mandatory"
         404:
           description: Not Found
           content:
@@ -1076,32 +389,9 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Memo not found"
-    patch:
-      tags:
-        - Memos
-      summary: Partially update a memo
-      description: Update specific fields of a memo created by the authenticated user
-      parameters:
-        - name: memoId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                text:
-                  type: string
-                  example: "This is new memo"
-      responses:
-        200:
-          description: Memo updated successfully
+                    example: "No user found associated with the provided email address : "
+        500:
+          description: Internal Server Error
           content:
             application/json:
               schema:
@@ -1109,122 +399,14 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Memo updated successfully"
-        400:
-          description: Bad Request (Invalid input)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid text"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Memo not found"
-    delete:
-      tags:
-        - Memos
-      summary: Delete a memo
-      description: Delete a specific memo by its ID.
-      parameters:
-        - name: memoId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: Memo deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Memo deleted successfully"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Memo not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Memo not found"
-
-  /bookmarks:
-    get:
-      tags:
-        - Bookmarks
-      summary: Get all bookmarks
-      description: Retrieve all bookmarks created by the authenticated user
-      responses:
-        200:
-          description: An array of bookmark objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    bookmarkId:
-                      type: integer
-                      example: 1
-                    noteId:
-                      type: integer
-                      example: 1
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: "2021-09-30T12:00:00Z"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
+                    example: "Failed to send email"
+  /users/reset-password/verify:
     post:
       tags:
-        - Bookmarks
-      summary: Create a bookmark
-      description: Create a bookmark for the authenticated user
+        - Users
+      summary: Verify password reset token
+      description: Verifies the password reset token sent to the user's email.
+      operationId: verifyPasswordResetToken
       requestBody:
         required: true
         content:
@@ -1232,15 +414,14 @@ paths:
             schema:
               type: object
               properties:
-                noteId:
-                  type: integer
-                  example: 1
-                timestamp:
+                token:
                   type: string
-                  example: "00:00:00"
+                  example: "eyJhbGciOiJIUzUxMiJ9..."
+              required:
+                - token
       responses:
-        201:
-          description: Memo created successfully
+        200:
+          description: Token verified successfully
           content:
             application/json:
               schema:
@@ -1248,9 +429,9 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Bookmark created successfully"
+                    example: "Password reset token verified"
         400:
-          description: Bad Request (Invalid input)
+          description: Validation failed for the input data
           content:
             application/json:
               schema:
@@ -1258,222 +439,14 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Invalid text"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-
-  /bookmarks/{bookmarkId}:
-    get:
+                    example: "Token is invalid or expired"
+  /users/reset-password:
+    post:
       tags:
-        - Bookmarks
-      summary: Get a bookmark
-      description: Retrieve a specific bookmark created by the authenticated user
-      parameters:
-        - name: bookmarkId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: A bookmark object
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bookmarkId:
-                    type: integer
-                    example: 1
-                  noteId:
-                    type: integer
-                    example: 1
-                  timestamp:
-                    type: string
-                    example: "00:00:00"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Bookmark not found"
-    delete:
-      tags:
-        - Bookmarks
-      summary: Delete a bookmark
-      description: Delete a specific bookmark by its ID.
-      parameters:
-        - name: bookmarkId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: Bookmark deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Bookmark deleted successfully"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Bookmark not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Bookmark not found"
-
-  /folders:
-    get:
-      tags:
-        - Folders
-      summary: Get all folders
-      description: Retrieve all folders created by the authenticated user
-      responses:
-        200:
-          description: An array of folder objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    folderId:
-                      type: integer
-                      example: 1
-                    name:
-                      type: string
-                      example: "Deep Learning"
-                    notes:
-                      type: integer
-                      example: 5
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-  /folders/{folderId}:
-    get:
-      tags:
-        - Folders
-      summary: Get a folder
-      description: Retrieve a specific folder created by the authenticated user
-      parameters:
-        - name: folderId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: A folder object
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  folderId:
-                    type: integer
-                    example: 1
-                  name:
-                    type: string
-                    example: "Deep Learning"
-                  notes:
-                    type: object
-                    properties:
-                      noteId:
-                        type: integer
-                        example: 1
-                      title:
-                        type: string
-                        example: "Note 1"
-                      createdAt:
-                        type: string
-                        format: date-time
-                        example: "2021-09-30T12:00:00Z"
-                      duration:
-                        type: integer
-                        example: "01:30:00"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Folder not found"
-    patch:
-      tags:
-        - Folders
-      summary: Partially update a folder
-      description: Update specific fields of a folder created by the authenticated user
-      parameters:
-        - name: folderId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
+        - Users
+      summary: Reset password
+      description: Resets the password for the user after verifying the token.
+      operationId: resetPassword
       requestBody:
         required: true
         content:
@@ -1481,12 +454,19 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                token:
                   type: string
-                  example: "New Name"
+                  example: "eyJhbGciOiJIUzUxMiJ9..."
+                newPassword:
+                  type: string
+                  format: password
+                  example: "sfnksjfbnksf"
+              required:
+                - token
+                - newPassword
       responses:
         200:
-          description: Folder updated successfully
+          description: Password reset successfully
           content:
             application/json:
               schema:
@@ -1494,9 +474,9 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Folder updated successfully"
+                    example: "Password reset successfully"
         400:
-          description: Bad Request (Invalid input)
+          description: Validation failed for the input data
           content:
             application/json:
               schema:
@@ -1504,135 +484,4 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Invalid name"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Folder not found"
-
-    delete:
-      tags:
-        - Folders
-      summary: Delete a folder
-      description: Delete a folder created by the authenticated user
-      parameters:
-        - name: folderId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: Folder deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Folder deleted successfully"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Folder not found"
-
-  /calender:
-    get:
-      tags:
-        - Calender
-      summary: Get all notes
-      description: Retrieve all notes created by the authenticated user within a specified date range
-      parameters:
-        - name: start_date
-          in: query
-          required: true
-          description: The start date for retrieving notes
-          schema:
-            type: string
-            format: date
-            example: "2021-09-30"
-        - name: end_date
-          in: query
-          required: true
-          description: The end date for retrieving notes
-          schema:
-            type: string
-            format: date
-            example: "2021-10-01"
-      responses:
-        200:
-          description: An array of note objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    noteId:
-                      type: integer
-                      example: 1
-                    title:
-                      type: string
-                      example: "Note 1"
-                    folder:
-                      type: string
-                      example: "Deep Learning"
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: "2021-09-30T12:00:00Z"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unauthorized"
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Note not found"
+                    example: "Token is invalid or expired"
