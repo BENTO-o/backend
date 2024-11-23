@@ -34,6 +34,14 @@ public class FileService {
 		if (file.isEmpty()) {
 			throw new ValidationException("File is empty");
 		}
+
+		// 폴더 확인 및 생성
+		File directory = new File(uploadPath);
+		if (!directory.exists()) {
+			directory.mkdirs();
+			System.out.println("Directory created: " + uploadPath);
+		}
+
 		String fullPath = uploadPath + file.getOriginalFilename();
 
 		try {
