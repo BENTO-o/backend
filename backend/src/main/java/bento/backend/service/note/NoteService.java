@@ -12,6 +12,7 @@ import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.response.MessageResponse;
+import bento.backend.dto.request.NoteCreateRequest;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,14 +32,17 @@ public class NoteService {
 	private final SummaryRepository summaryRepository;
 
 	// 노트 생성
-	public MessageResponse createNote(User user, String filePath) {
-		// dummy data
+	public MessageResponse createNote(User user, String filePath, NoteCreateRequest request) {
+		if (request.getFolder() == null) {
+			request.setFolder("/");
+		}
+
 		Audio audio = Audio.builder()
 				.filePath(filePath)
-				.duration("01:30:00")
+				.duration(request.getDuration())
 				.uploadDate(LocalDateTime.now())
 				.status(AudioStatus.PROCESSING)
-				.language("ko")
+				.language(request.getLanguage())
 				.user(user)
 				.build();
 
@@ -62,11 +66,10 @@ public class NoteService {
 
 		JSONObject jsonContent = new JSONObject(content);
 
-		// dummy data
 		Note note = Note.builder()
-				.title("dummy title")
+				.title(request.getTitle())
 				.content(jsonContent.toString())
-				.folder("dummy folder")
+				.folder(request.getFolder())
 				.audio(audio)
 				.user(user)
 				.build();

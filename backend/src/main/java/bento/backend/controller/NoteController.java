@@ -10,6 +10,7 @@ import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.MessageResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
+import bento.backend.dto.request.NoteCreateRequest;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,7 @@ public class NoteController {
 	public final NoteService noteService;
 	public final FileService fileService;
 
+	// 테스트용 API
 	// 파일 다운로드
 	@GetMapping("/download/{fileName}")
 	public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
@@ -38,13 +40,13 @@ public class NoteController {
 
 	// 노트 생성
 	@PostMapping("")
-	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @RequestParam MultipartFile file) {
+	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @ModelAttribute NoteCreateRequest request) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
 		// 파일 업로드
-		String filePath = fileService.uploadFile(file);
+		String filePath = fileService.uploadFile(request.getFile());
 
-		return ResponseEntity.status(201).body(noteService.createNote(user, filePath));
+		return ResponseEntity.status(201).body(noteService.createNote(user, filePath, request));
 	}
 
 	// 노트 목록 조회

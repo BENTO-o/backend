@@ -21,6 +21,8 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import org.json.simple.JSONObject;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +44,8 @@ public class FileService {
 			System.out.println("Directory created: " + uploadPath);
 		}
 
-		String fullPath = uploadPath + file.getOriginalFilename();
+		String fileName = generateFileName(file.getOriginalFilename());
+		String fullPath = uploadPath + fileName;
 
 		try {
 			file.transferTo(new File(fullPath));
@@ -50,7 +53,15 @@ public class FileService {
 			throw new ValidationException("File upload failed");
 		}
 
-		return fullPath;
+		return fileName;
+	}
+
+	// 파일 이름 생성
+	private String generateFileName(String originalFileName) {
+		String timestamp = new SimpleDateFormat("yyyyMMddHHmmssSSS").format(new Date());
+		String newFileName = timestamp + "_" + originalFileName;
+
+		return newFileName;
 	}
 
 	// 파일 다운로드
