@@ -37,14 +37,6 @@ public class BookmarkController {
         return ResponseEntity.status(201).body(response);
     }
 
-    //    일단 만들어두긴 했지만, 사용하지 않을 것 같은 메소드입니다.
-    @GetMapping
-    public ResponseEntity<List<BookmarkResponse>> getBookmarks(@RequestHeader("Authorization") String token) {
-        User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-        List<BookmarkResponse> response = bookmarkService.getBookmarks(user);
-        return ResponseEntity.status(200).body(response);
-    }
-
     @GetMapping("/note/{noteId}")
     public ResponseEntity<List<BookmarkResponse>> getBookmarksByNoteId(@RequestHeader("Authorization") String token, @PathVariable Long noteId) {
         User user = authService.getUserFromToken(token.replace("Bearer ", ""));
