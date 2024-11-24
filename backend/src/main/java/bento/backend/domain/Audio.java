@@ -1,6 +1,7 @@
 package bento.backend.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,10 @@ public class Audio {
     private String filePath;
 
     @Column(name = "duration", nullable = false)
+    @Pattern(
+            regexp = "^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$",
+            message = "Duration must be in the format of HH:mm:ss"
+    )
     private String duration;
 
     @Column(name = "upload_date", nullable = false)

@@ -1,13 +1,9 @@
 package bento.backend.service.note;
 
+import bento.backend.domain.*;
 import bento.backend.repository.NoteRepository;
 import bento.backend.repository.AudioRepository;
 import bento.backend.repository.SummaryRepository;
-import bento.backend.domain.AudioStatus;
-import bento.backend.domain.Audio;
-import bento.backend.domain.User;
-import bento.backend.domain.Note;
-import bento.backend.domain.Summary;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
@@ -20,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import org.json.simple.JSONObject;
 
@@ -79,6 +74,12 @@ public class NoteService {
 		return MessageResponse.builder()
 				.message("Note created successfully")
 				.build();
+	}
+
+	// 노트 조회
+    public Note getNoteById(Long noteId) {
+		return noteRepository.findByNoteId(noteId)
+				.orElseThrow(() -> new IllegalArgumentException("Note not found"));
 	}
 
 	// 노트 목록 조회
@@ -169,5 +170,9 @@ public class NoteService {
 		return NoteSummaryResponse.builder()
 				.summary(summary.getContent())
 				.build();
+	}
+
+	public boolean isNoteOwner(User user, Long noteId) {
+		return user.getRole().equals(Role.ROLE_USER) || user.getUserId().equals(noteRepository.findUserIdByNoteId(noteId));
 	}
 }
