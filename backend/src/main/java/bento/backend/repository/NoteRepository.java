@@ -10,4 +10,5 @@ import java.util.List;
 public interface NoteRepository extends JpaRepository<Note, Long> {
 	Optional<Note> findByNoteIdAndUser(Long noteId, User user);
 	List<Note> findAllByUser(User user);
+	List<Note> findAllByUserAndFolder(User user, String folder);
 }

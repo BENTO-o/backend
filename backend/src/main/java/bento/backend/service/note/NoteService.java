@@ -34,7 +34,7 @@ public class NoteService {
 	// 노트 생성
 	public MessageResponse createNote(User user, String filePath, NoteCreateRequest request) {
 		if (request.getFolder() == null) {
-			request.setFolder("/");
+			request.setFolder("default");
 		}
 
 		Audio audio = Audio.builder()
@@ -101,6 +101,44 @@ public class NoteService {
 		}
 
 		return noteList;
+	}
+
+	// 노트 목록 조회 (폴더별)
+	public List<NoteListResponse> getNoteListByFolder(User user, String folder) {
+		List<Note> notes = noteRepository.findAllByUserAndFolder(user, folder);
+
+		if (notes.isEmpty()) {
+			throw new IllegalArgumentException("Folder not found");
+		}
+
+		List<NoteListResponse> noteList = new ArrayList<>();
+
+		for (Note note : notes) {
+			Audio audio = note.getAudio();
+
+			NoteListResponse noteListResponse = NoteListResponse.builder()
+					.noteId(note.getNoteId())
+					.title(note.getTitle())
+					.folder(note.getFolder())
+					.createdAt(note.getFormattedDateTime(note.getCreatedAt()))
+					.duration(audio.getDuration())
+					.build();
+
+			noteList.add(noteListResponse);
+		}
+
+		return noteList;
+	}
+
+	// 유저의 폴더 목록 조회
+	public List<String> getFolders(User user) {
+		List<Note> notes = noteRepository.findAllByUser(user);
+		List<String> folders = notes.stream()
+				.map(Note::getFolder)
+				.distinct()
+				.collect(Collectors.toList());
+
+		return folders;
 	}
 
 	// 노트 상세 조회

@@ -57,6 +57,23 @@ public class NoteController {
 		return ResponseEntity.status(200).body(noteService.getNoteList(user));
 	}
 
+	// 노트 목록 조회 (폴더별)
+	@GetMapping("/folders/{folder}")
+	public ResponseEntity<List<NoteListResponse>> getNoteByFolder(@RequestHeader("Authorization") String token, @PathVariable String folder) {
+		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+
+		return ResponseEntity.status(200).body(noteService.getNoteListByFolder(user, folder));
+	}
+
+	// 유저의 폴더 목록 조회
+	@GetMapping("/folders")
+	public ResponseEntity<List<String>> getFolders(@RequestHeader("Authorization") String token) {
+		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+		List<String> folders = noteService.getFolders(user);
+
+		return ResponseEntity.status(200).body(folders);
+	}
+
 	// 노트 상세 조회
 	@GetMapping("/{noteId}")
 	public ResponseEntity<NoteDetailResponse> getNoteDetail(@RequestHeader("Authorization") String token, @PathVariable Long noteId) {
