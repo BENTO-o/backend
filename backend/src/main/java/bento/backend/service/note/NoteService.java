@@ -173,6 +173,6 @@ public class NoteService {
 	}
 
 	public boolean isNoteOwner(User user, Long noteId) {
-		return user.getRole().equals(Role.ROLE_USER) || user.getUserId().equals(noteRepository.findUserIdByNoteId(noteId));
+		return user.getRole().equals(Role.ROLE_ADMIN) || user.getUserId().equals(noteRepository.findUserIdByNoteId(noteId));
 	}
 }

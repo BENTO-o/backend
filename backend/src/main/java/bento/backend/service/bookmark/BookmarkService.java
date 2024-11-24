@@ -76,6 +76,6 @@ public class BookmarkService {
     }
 
     public boolean isBookmarkOwner(User user, Long bookmarkId) {
-        return user.getRole().equals(Role.ROLE_USER) || bookmarkRepository.existsByIdAndUser(bookmarkId, user.getUserId());
+        return user.getRole().equals(Role.ROLE_ADMIN) || bookmarkRepository.existsByIdAndUser(bookmarkId, user.getUserId());
     }
 }
