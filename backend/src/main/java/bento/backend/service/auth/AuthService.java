@@ -1,7 +1,6 @@
 package bento.backend.service.auth;
 
 import bento.backend.constant.ErrorMessages;
-import bento.backend.constant.SuccessMessages;
 import bento.backend.domain.Role;
 import bento.backend.domain.User;
 import bento.backend.dto.request.UserLoginRequest;
@@ -10,6 +9,7 @@ import bento.backend.dto.request.UserPasswordResetRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
 import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.exception.ConflictException;
+import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.UnauthorizedException;
 import bento.backend.repository.UserRepository;
 import bento.backend.security.JwtTokenProvider;
@@ -21,17 +21,15 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.mail.javamail.JavaMailSender;
 
-import java.util.Map;
-
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 //    Authorization과 Authentication을 처리하는 서비스입니다.
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
-    private final UserRepository userRepository;
     private final PasswordService passwordService;
     private final JavaMailSender mailSender;
+    private final UserRepository userRepository;
 
     //    Authentication
     public UserLoginResponse login (UserLoginRequest loginRequest) {
@@ -45,7 +43,7 @@ public class AuthService {
         return UserLoginResponse.of(token, jwtTokenProvider.getExpirationTime());
     }
 
-    public Map<String, String> registerUser(UserRegistrationRequest request) {
+    public void registerUser(UserRegistrationRequest request) {
         String username = request.getUsername();
         String email = request.getEmail();
         String rawPassword = request.getPassword();
@@ -59,7 +57,6 @@ public class AuthService {
         String encryptedPassword = passwordService.encodePassword(rawPassword);
         User user = new User(username, encryptedPassword, email, Role.ROLE_USER);
         userRepository.save(user);
-        return Map.of("message", SuccessMessages.USER_REGISTERED);
     }
 
     //    Authorization
@@ -68,8 +65,7 @@ public class AuthService {
             throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
         }
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        User user = userService.findByUserId(userId);
-        return user;
+        return userService.findByUserId(userId);
     }
 
     public boolean isAdminUser(String token) {
@@ -84,7 +80,7 @@ public class AuthService {
         String email = request.getEmail();
         User user = userService.findByEmail(email);
         if (user == null) {
-            throw new UnauthorizedException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email);
+            throw new ResourceNotFoundException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email);
         }
         // 비밀번호 재설정 토큰 생성
         String token = jwtTokenProvider.generateResetToken(email);
