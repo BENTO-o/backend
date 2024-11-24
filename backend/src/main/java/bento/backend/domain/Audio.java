@@ -2,7 +2,8 @@ package bento.backend.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -10,6 +11,7 @@ import java.time.format.DateTimeFormatter;
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 @AllArgsConstructor
 @Table(name = "audio")
 public class Audio {
@@ -18,15 +20,13 @@ public class Audio {
     @Column(name = "audio_id")
     private Long audioId;
 
-//    @Column(name = "title", nullable = false)
-//    private String title;
-
     @Column(name = "file_path", nullable = false)
     private String filePath;
 
     @Column(name = "duration", nullable = false)
     private String duration;
 
+    @CreatedDate
     @Column(name = "upload_date", nullable = false)
     private LocalDateTime uploadDate;
 
@@ -44,8 +44,8 @@ public class Audio {
     @OneToOne(mappedBy = "audio")
     private Note note;
 
-//    public String getFormattedDateTime(LocalDateTime dateTime) {
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-//        return dateTime.format(formatter);
-//    }
+   public String getFormattedDateTime(LocalDateTime dateTime) {
+       DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+       return dateTime.format(formatter);
+   }
 }
