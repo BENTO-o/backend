@@ -81,6 +81,12 @@ public class NoteService {
 				.build();
 	}
 
+	// 노트 조회
+    public Note getNoteById(Long noteId) {
+		return noteRepository.findByNoteId(noteId)
+				.orElseThrow(() -> new IllegalArgumentException("Note not found"));
+	}
+
 	// 노트 목록 조회
 	public List<NoteListResponse> getNoteList(User user) {
 		List<Note> notes = noteRepository.findAllByUser(user);

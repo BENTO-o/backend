@@ -10,7 +10,9 @@ import bento.backend.dto.request.UserPasswordResetRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
 import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.exception.ConflictException;
+import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.UnauthorizedException;
+import bento.backend.repository.BookmarkRepository;
 import bento.backend.repository.UserRepository;
 import bento.backend.security.JwtTokenProvider;
 import bento.backend.service.user.PasswordService;
@@ -29,9 +31,10 @@ public class AuthService {
 //    Authorization과 Authentication을 처리하는 서비스입니다.
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
-    private final UserRepository userRepository;
     private final PasswordService passwordService;
     private final JavaMailSender mailSender;
+    private final UserRepository userRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     //    Authentication
     public UserLoginResponse login (UserLoginRequest loginRequest) {
@@ -84,7 +87,7 @@ public class AuthService {
         String email = request.getEmail();
         User user = userService.findByEmail(email);
         if (user == null) {
-            throw new UnauthorizedException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email);
+            throw new ResourceNotFoundException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email);
         }
         // 비밀번호 재설정 토큰 생성
         String token = jwtTokenProvider.generateResetToken(email);
@@ -117,5 +120,15 @@ public class AuthService {
         if (!jwtTokenProvider.validateResetToken(token)) {
             throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
         }
+    }
+
+    public boolean canDeleteBookmark(String token, Long bookmarkId) {
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
+        }
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        User user = userService.findByUserId(userId);
+        boolean isAdmin = user.getRole().equals(Role.ROLE_ADMIN);
+        return bookmarkRepository.existsByIdAndUserOrAdmin(bookmarkId, userId, isAdmin);
     }
 }
