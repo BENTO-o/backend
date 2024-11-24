@@ -71,8 +71,7 @@ public class AuthService {
             throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
         }
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        User user = userService.findByUserId(userId);
-        return user;
+        return userService.findByUserId(userId);
     }
 
     public boolean isAdminUser(String token) {

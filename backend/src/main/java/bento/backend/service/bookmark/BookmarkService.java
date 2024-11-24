@@ -13,7 +13,6 @@ import bento.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
 public class BookmarkService {
     private final BookmarkRepository bookmarkRepository;
     private final NoteRepository noteRepository;
-    private final UserRepository userRepository;
 
     public void createBookmark(BookmarkCreateRequest request) {
         Note note = noteRepository.findById(request.getNoteId())

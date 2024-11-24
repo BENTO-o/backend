@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
-    List<Bookmark> findByNote_NoteId(Long noteId);
     List<Bookmark> findByNote_NoteIdOrderByTimestampDesc(Long noteId);
 
     List<Bookmark> findAllByNoteUserUserId(Long userId);

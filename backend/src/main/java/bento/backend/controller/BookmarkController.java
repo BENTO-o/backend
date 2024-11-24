@@ -6,17 +6,12 @@ import bento.backend.domain.Note;
 import bento.backend.domain.User;
 import bento.backend.dto.request.BookmarkCreateRequest;
 import bento.backend.dto.response.BookmarkResponse;
-import bento.backend.exception.BadRequestException;
 import bento.backend.exception.ForbiddenException;
-import bento.backend.exception.UnauthorizedException;
-import bento.backend.repository.BookmarkRepository;
-import bento.backend.repository.UserRepository;
 import bento.backend.service.auth.AuthService;
 import bento.backend.service.bookmark.BookmarkService;
 import bento.backend.service.note.NoteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,9 +24,7 @@ import java.util.Map;
 public class BookmarkController {
     private final BookmarkService bookmarkService;
     private final NoteService noteService;
-    private final UserRepository userRepository;
     private final AuthService authService;
-    private final BookmarkRepository bookmarkRepository;
 
     @PostMapping
     public ResponseEntity<Map<String, String>> createBookmark(@RequestHeader("Authorization") String token, @Valid @RequestBody BookmarkCreateRequest request) {
