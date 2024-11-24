@@ -13,7 +13,10 @@ import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.response.MessageResponse;
 import bento.backend.dto.request.NoteCreateRequest;
+import bento.backend.exception.ResourceNotFoundException;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -30,6 +33,7 @@ public class NoteService {
 	private final NoteRepository noteRepository;
 	private final AudioRepository audioRepository;
 	private final SummaryRepository summaryRepository;
+	private final ObjectMapper objectMapper;
 
 	// 노트 생성
 	public MessageResponse createNote(User user, String filePath, NoteCreateRequest request) {
@@ -108,7 +112,7 @@ public class NoteService {
 		List<Note> notes = noteRepository.findAllByUserAndFolder(user, folder);
 
 		if (notes.isEmpty()) {
-			throw new IllegalArgumentException("Folder not found");
+			throw new ResourceNotFoundException("Folder not found");
 		}
 
 		List<NoteListResponse> noteList = new ArrayList<>();
@@ -144,17 +148,23 @@ public class NoteService {
 	// 노트 상세 조회
 	public NoteDetailResponse getNoteDetail(User user, Long noteId) {
 		Note note = noteRepository.findByNoteIdAndUser(noteId, user)
-			.orElseThrow(() -> new IllegalArgumentException("Note not found"));
+			.orElseThrow(() -> new ResourceNotFoundException("Note not found"));
 
 		Audio audio = note.getAudio();
-		
+		JsonNode JsonContent;
+		try{
+			JsonContent = objectMapper.readTree(note.getContent());
+		} catch (Exception e) {
+			throw new ResourceNotFoundException("Content not found");
+		}
+
 		return NoteDetailResponse.builder()
 				.noteId(note.getNoteId())
 				.title(note.getTitle())
 				.folder(note.getFolder())
 				.createdAt(note.getFormattedDateTime(note.getCreatedAt()))
 				.duration(audio.getDuration())
-				.content(note.getContent())
+				.content(JsonContent)
 				// TODO : AI 응답 형식 보고 수정 예정
 				// .speakers(note.getSpeakers())
 				// .scripts(note.getScripts())
@@ -164,7 +174,7 @@ public class NoteService {
 	// 노트 삭제
 	public MessageResponse deleteNote(User user, Long noteId) {
 		Note note = noteRepository.findByNoteIdAndUser(noteId, user)
-				.orElseThrow(() -> new IllegalArgumentException("Note not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Note not found"));
 		noteRepository.delete(note);
 
 		return MessageResponse.builder()
@@ -175,7 +185,7 @@ public class NoteService {
 	// 노트 수정
 	public MessageResponse updateNote(User user, Long noteId, Note noteInfo) {
 		Note note = noteRepository.findByNoteIdAndUser(noteId, user)
-				.orElseThrow(() -> new IllegalArgumentException("Note not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Note not found"));
 
 		note.update(noteInfo.getTitle(), noteInfo.getFolder());
 		noteRepository.save(note);
@@ -188,7 +198,7 @@ public class NoteService {
 	// AI 요약
 	public NoteSummaryResponse getSummary(User user, Long noteId) {
 		Note note = noteRepository.findByNoteIdAndUser(noteId, user)
-				.orElseThrow(() -> new IllegalArgumentException("Note not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Note not found"));
 
 		Summary summary = note.getSummary();
 
