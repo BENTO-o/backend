@@ -44,7 +44,6 @@ public class NoteService {
 		Audio audio = Audio.builder()
 				.filePath(filePath)
 				.duration(request.getDuration())
-				.uploadDate(LocalDateTime.now())
 				.status(AudioStatus.PROCESSING)
 				.language(request.getLanguage())
 				.user(user)
