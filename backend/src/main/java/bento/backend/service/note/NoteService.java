@@ -1,13 +1,9 @@
 package bento.backend.service.note;
 
+import bento.backend.domain.*;
 import bento.backend.repository.NoteRepository;
 import bento.backend.repository.AudioRepository;
 import bento.backend.repository.SummaryRepository;
-import bento.backend.domain.AudioStatus;
-import bento.backend.domain.Audio;
-import bento.backend.domain.User;
-import bento.backend.domain.Note;
-import bento.backend.domain.Summary;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
@@ -174,5 +170,9 @@ public class NoteService {
 		return NoteSummaryResponse.builder()
 				.summary(summary.getContent())
 				.build();
+	}
+
+	public boolean isNoteOwner(User user, Long noteId) {
+		return user.getRole().equals(Role.ROLE_USER) || user.getUserId().equals(noteRepository.findUserIdByNoteId(noteId));
 	}
 }

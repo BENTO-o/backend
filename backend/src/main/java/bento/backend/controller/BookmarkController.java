@@ -28,7 +28,10 @@ public class BookmarkController {
 
     @PostMapping
     public ResponseEntity<Map<String, String>> createBookmark(@RequestHeader("Authorization") String token, @Valid @RequestBody BookmarkCreateRequest request) {
-        authService.getUserFromToken(token.replace("Bearer ", ""));
+        User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+        if (!noteService.isNoteOwner(user, request.getNoteId())) {
+            throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
+        }
         bookmarkService.createBookmark(request);
         Map<String, String> response = Map.of("message", SuccessMessages.BOOKMARK_CREATED);
         return ResponseEntity.status(201).body(response);
@@ -55,9 +58,8 @@ public class BookmarkController {
 
     @DeleteMapping("/{bookmarkId}")
     public ResponseEntity<Map<String, String>> deleteBookmark(@RequestHeader("Authorization") String token, @PathVariable Long bookmarkId) {
-        String tokenValue = token.replace("Bearer ", "");
-        if (!authService.canDeleteBookmark(tokenValue, bookmarkId)) {
-//            TODO : 현재 여러 종류의 예외를 모두 ForbiddenException으로 처리하고 있습니다. 추후에 수정이 필요합니다.
+        User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+        if (!bookmarkService.isBookmarkOwner(user, bookmarkId)) {
             throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
         }
         bookmarkService.deleteBookmark(bookmarkId);
