@@ -3,13 +3,13 @@ package bento.backend.service.bookmark;
 import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.Bookmark;
 import bento.backend.domain.Note;
+import bento.backend.domain.Role;
 import bento.backend.domain.User;
 import bento.backend.dto.request.BookmarkCreateRequest;
 import bento.backend.dto.response.BookmarkResponse;
 import bento.backend.exception.BadRequestException;
 import bento.backend.repository.BookmarkRepository;
 import bento.backend.repository.NoteRepository;
-import bento.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -73,5 +73,9 @@ public class BookmarkService {
         Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
                 .orElseThrow(() -> new BadRequestException(ErrorMessages.BOOKMARK_ID_NOT_FOUND_ERROR + bookmarkId));
         bookmarkRepository.delete(bookmark);
+    }
+
+    public boolean isBookmarkOwner(User user, Long bookmarkId) {
+        return user.getRole().equals(Role.ROLE_USER) || bookmarkRepository.existsByIdAndUser(bookmarkId, user.getUserId());
     }
 }
