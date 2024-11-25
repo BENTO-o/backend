@@ -20,15 +20,12 @@ public class Memo {
     @Column(name = "memo_id")
     private Long memoId;
 
+    @Setter
     @Column(name = "text", nullable = false)
     private String text;
 
     @Column(name = "timestamp", nullable = false)
     private String timestamp;
-
-    @CreatedDate
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "note_id", nullable = false)

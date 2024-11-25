@@ -29,9 +29,9 @@ public class BookmarkController {
     @PostMapping
     public ResponseEntity<Map<String, String>> createBookmark(@RequestHeader("Authorization") String token, @Valid @RequestBody BookmarkCreateRequest request) {
         User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-        if (!noteService.isNoteOwner(user, request.getNoteId())) {
-            throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
-        }
+//        if (!noteService.isNoteOwner(user, request.getNoteId())) {
+//            throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
+//        }
         bookmarkService.createBookmark(request);
         Map<String, String> response = Map.of("message", SuccessMessages.BOOKMARK_CREATED);
         return ResponseEntity.status(201).body(response);
@@ -51,12 +51,11 @@ public class BookmarkController {
     @DeleteMapping("/{bookmarkId}")
     public ResponseEntity<Map<String, String>> deleteBookmark(@RequestHeader("Authorization") String token, @PathVariable Long bookmarkId) {
         User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-        if (!bookmarkService.isBookmarkOwner(user, bookmarkId)) {
-            throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
-        }
+//        if (!bookmarkService.isBookmarkOwner(user, bookmarkId)) {
+//            throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
+//        }
         bookmarkService.deleteBookmark(bookmarkId);
         Map<String, String> response = Map.of("message", SuccessMessages.BOOKMARK_DELETED);
         return ResponseEntity.status(200).body(response);
     }
-
 }

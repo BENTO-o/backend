@@ -16,5 +16,8 @@ public class ErrorMessages {
     public static final String BOOKMARK_ID_NOT_FOUND_ERROR = "The bookmark with the specified ID could not be found : ";
     public static final String BOOKMARK_TIMESTAMP_ERROR = "The bookmark timestamp is invalid. Please provide a valid timestamp.";
     public static final String BOOKMARK_ALREADY_EXISTS_ERROR = "A bookmark with the same timestamp already exists for this note.";
+    public static final String MEMO_TIMESTAMP_ERROR = "The memo timestamp is invalid. Please provide a valid timestamp.";
+    public static final String MEMO_ALREADY_EXISTS_ERROR = "A memo with the same timestamp already exists for this note.";
+    public static final String MEMO_ID_NOT_FOUND_ERROR = "The memo with the specified ID could not be found : ";
     // 필요한 다른 에러 메시지들을 추가
 }
