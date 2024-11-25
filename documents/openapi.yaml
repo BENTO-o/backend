@@ -549,12 +549,6 @@ paths:
                 folder:
                   type: string
                   example: "deep learning"
-                language:
-                  type: string
-                  example: "ko"
-                duration:
-                  type: string
-                  example: "01:00:00"
                 file:
                   type: string
                   format: binary
@@ -717,8 +711,8 @@ paths:
               properties:
                 title:
                   type: string
-                  example: "My updated note"
-                folder:
+                  example: "New Title"
+                folderName:
                   type: string
                   example: "new folder"
       responses:
@@ -761,9 +755,15 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
-                example: [ "deep learning", "machine learning", "data science" ]
-  /notes/folders/{folder}:
+                  type: object
+                  properties:
+                    folder_id:
+                      type: integer
+                      example: 1
+                    folderName:
+                      type: string
+                      example: "deep learning"
+  /notes/folders/{folderId}:
     get:
       tags:
         - Notes
@@ -772,11 +772,11 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: folder
+        - name: folderId
           in: path
           required: true
           schema:
-            type: string
+            type: integer
       responses:
         200:
           description: A list of notes in the folder
