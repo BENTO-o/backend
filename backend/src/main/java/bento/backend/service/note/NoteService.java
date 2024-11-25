@@ -42,34 +42,55 @@ public class NoteService {
 				.language(request.getLanguage())
 				.user(user)
 				.build();
-
 		audioRepository.save(audio);
 
-		// TODO : AI로 API 보내기 (Naver Speech-to-Text API, Prompting)
-
-		// dummy data
+		// Prepare content
 		Map<String, Object> content = new HashMap<>();
+		try {
+			List<String> speaker = List.of("Speaker 1", "Speaker 2");
+			List<Map<String, Object>> script = List.of(
+					Map.of("speaker", "Speaker 1", "text", "Script 1", "timestamp", "00:00:00", "memo", "Memo 1"),
+					Map.of("speaker", "Speaker 2", "text", "Script 2", "timestamp", "00:01:00", "memo", "Memo 2")
+			);
 
-		List<String> speaker = new ArrayList<>();
-		speaker.add("Speaker 1");
-		speaker.add("Speaker 2");
-
-		List<Map<String, Object>> script = new ArrayList<>();
-		script.add(Map.of("speaker", "Speaker 1", "text", "Script 1", "timestamp", "00:00:00", "memo", "Memo 1"));
-		script.add(Map.of("speaker", "Speaker 2", "text", "Script 2", "timestamp", "00:01:00", "memo", "Memo 2"));
-
-		content.put("speaker", speaker);
-		content.put("script", script);
+			content.put("speaker", speaker);
+			content.put("script", script);
+		} catch (Exception e) {
+			// Fallback if there's an issue generating dummy content
+			content = Map.of();
+		}
 
 		JSONObject jsonContent = new JSONObject(content);
 
 		Note note = Note.builder()
 				.title(request.getTitle())
-				.content(jsonContent.toString())
+				.content(jsonContent.toString()) // Ensure content is always a valid JSON string
 				.folder(request.getFolder())
 				.audio(audio)
 				.user(user)
 				.build();
+
+		// Add bookmarks and memos if present
+		if (request.getBookmarks() != null) {
+			List<Bookmark> bookmarks = request.getBookmarks().stream()
+					.map(bookmarkRequest -> Bookmark.builder()
+							.timestamp(bookmarkRequest.getTimestamp())
+							.note(note)
+							.build())
+					.collect(Collectors.toList());
+			note.getBookmarks().addAll(bookmarks);
+		}
+
+		if (request.getMemos() != null) {
+			List<Memo> memos = request.getMemos().stream()
+					.map(memoRequest -> Memo.builder()
+							.text(memoRequest.getText())
+							.timestamp(memoRequest.getTimestamp())
+							.note(note)
+							.build())
+					.collect(Collectors.toList());
+			note.getMemos().addAll(memos);
+		}
 
 		noteRepository.save(note);
 
@@ -77,6 +98,8 @@ public class NoteService {
 				.message("Note created successfully")
 				.build();
 	}
+
+
 
 	// 노트 조회
     public Note getNoteById(Long noteId) {

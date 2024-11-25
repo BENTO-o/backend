@@ -1,5 +1,7 @@
 package bento.backend.controller;
 
+import bento.backend.dto.request.BookmarkCreateRequest;
+import bento.backend.dto.request.MemoCreateRequest;
 import bento.backend.service.auth.AuthService;
 import bento.backend.service.note.NoteService;
 import bento.backend.service.file.FileService;
@@ -12,6 +14,10 @@ import bento.backend.dto.response.MessageResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.request.NoteCreateRequest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,13 +46,41 @@ public class NoteController {
 
 	// 노트 생성
 	@PostMapping("")
-	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @ModelAttribute NoteCreateRequest request) {
+	public ResponseEntity<MessageResponse> createNote(
+			@RequestHeader("Authorization") String token,
+			@RequestPart(value = "file", required = true) MultipartFile file,
+			@RequestPart(value = "note") NoteCreateRequest request,
+			@RequestPart(value = "bookmarks", required = false) String bookmarksJson,
+			@RequestPart(value = "memos", required = false) String memosJson
+	) {
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		try {
+			// Parse bookmarks and memos
+			List<BookmarkCreateRequest> bookmarks = objectMapper.readValue(
+					bookmarksJson,
+					new TypeReference<List<BookmarkCreateRequest>>() {}
+			);
+			List<MemoCreateRequest> memos = objectMapper.readValue(
+					memosJson,
+					new TypeReference<List<MemoCreateRequest>>() {}
+			);
+
+			// Set parsed data
+			request.setBookmarks(bookmarks);
+			request.setMemos(memos);
+			request.setFile(file);
+
+		} catch (JsonProcessingException e) {
+			return ResponseEntity.badRequest()
+					.body(new MessageResponse("Invalid JSON format: " + e.getMessage()));
+		}
+
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+		String filePath = fileService.uploadFile(file);
 
-		// 파일 업로드
-		String filePath = fileService.uploadFile(request.getFile());
-
-		return ResponseEntity.status(201).body(noteService.createNote(user, filePath, request));
+		return ResponseEntity.status(201)
+				.body(noteService.createNote(user, filePath, request));
 	}
 
 	// 노트 목록 조회

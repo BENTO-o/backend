@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 
 @Getter
 @Setter
@@ -26,4 +28,8 @@ public class NoteCreateRequest {
 
 	@NotBlank(message = "File is mandatory")
 	private MultipartFile file;
+
+	private List<BookmarkCreateRequest> bookmarks; // 북마크 리스트
+
+	private List<MemoCreateRequest> memos;     // 메모 리스트
 }
