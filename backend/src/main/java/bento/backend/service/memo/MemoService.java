@@ -78,6 +78,6 @@ public class MemoService {
     }
 
     public boolean isMemoOwner(User user, Long memoId) {
-        return user.getRole().equals(Role.ROLE_ADMIN) || memoRepository.existsByIdAndUser(memoId, user);
+        return user.getRole().equals(Role.ROLE_ADMIN) || memoRepository.existsByMemoIdAndNote_User_UserId(memoId, user);
     }
 }

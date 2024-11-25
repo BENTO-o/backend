@@ -12,5 +12,5 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
 
     List<Memo> findByNote_NoteIdOrderByTimestampDesc(Long noteId);
 
-    boolean existsByIdAndUser(Long memoId, User user);
+    boolean existsByMemoIdAndNote_User_UserId(Long memoId, User user);
 }
