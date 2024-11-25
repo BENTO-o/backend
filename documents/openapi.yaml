@@ -763,6 +763,47 @@ paths:
                     folderName:
                       type: string
                       example: "deep learning"
+    post:
+      tags:
+        - Notes
+      summary: Create a new folder
+      description: Creates a new folder in the system.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                folderName:
+                  type: string
+                  example: "New Folder name"
+      responses:
+        201:
+          description: Note created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Folder created successfully"
+        400:
+          description: Validation failed for the input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: string
+                example:
+                  message: "Folder already exists || Folder name is required"
   /notes/folders/{folderId}:
     get:
       tags:
