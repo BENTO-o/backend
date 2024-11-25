@@ -83,7 +83,7 @@ public class NoteService {
 	// 노트 조회
     public Note getNoteById(Long noteId) {
 		return noteRepository.findByNoteId(noteId)
-				.orElseThrow(() -> new IllegalArgumentException("Note not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Note not found"));
 	}
 
 	// 노트 목록 조회
