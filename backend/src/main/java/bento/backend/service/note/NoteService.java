@@ -18,11 +18,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.time.LocalDateTime;
 import org.json.simple.JSONObject;
 
@@ -244,6 +242,8 @@ public class NoteService {
 	}
 
 	public boolean isNoteOwner(User user, Long noteId) {
-		return user.getRole().equals(Role.ROLE_ADMIN) || user.getUserId().equals(noteRepository.findUserIdByNoteId(noteId));
+		Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
+		return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
 	}
+
 }
