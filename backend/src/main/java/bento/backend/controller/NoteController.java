@@ -5,6 +5,7 @@ import bento.backend.service.note.NoteService;
 import bento.backend.service.file.FileService;
 import bento.backend.domain.Note;
 import bento.backend.domain.User;
+import bento.backend.domain.Folder;
 import bento.backend.repository.NoteRepository;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
@@ -72,6 +73,14 @@ public class NoteController {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
 		return ResponseEntity.status(200).body(noteService.getFolders(user));
+	}
+
+	// 폴더 생성
+	@PostMapping("/folders")
+	public ResponseEntity<MessageResponse> createFolder(@RequestHeader("Authorization") String token, @RequestBody Folder folderInfo) {
+		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+
+		return ResponseEntity.status(201).body(noteService.createFolder(user, folderInfo.getFolderName()));
 	}
 
 	// 노트 상세 조회

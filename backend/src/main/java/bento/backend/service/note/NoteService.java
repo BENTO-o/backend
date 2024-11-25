@@ -13,6 +13,7 @@ import bento.backend.dto.response.FolderResponse;
 import bento.backend.dto.request.NoteCreateRequest;
 import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
+import bento.backend.exception.ValidationException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -151,6 +152,28 @@ public class NoteService {
 						.folderName(folder.getFolderName())
 						.build())
 				.collect(Collectors.toList());
+	}
+
+	// 폴더 생성
+	public MessageResponse createFolder(User user, String folderName) {
+		if (folderName == null) {
+			throw new ValidationException("Folder name is required");
+		}
+
+		if (folderRepository.existsByFolderNameAndUser(folderName, user)) {
+			throw new ValidationException("Folder already exists");
+		}
+
+		Folder newFolder = Folder.builder()
+				.folderName(folderName)
+				.user(user)
+				.build();
+
+		folderRepository.save(newFolder);
+
+		return MessageResponse.builder()
+				.message("Folder created successfully")
+				.build();
 	}
 
 	// 노트 상세 조회
