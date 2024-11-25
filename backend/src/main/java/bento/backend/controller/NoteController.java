@@ -9,8 +9,10 @@ import bento.backend.repository.NoteRepository;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.MessageResponse;
+import bento.backend.dto.response.FolderResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.request.NoteCreateRequest;
+import bento.backend.dto.request.NoteUpdateRequest;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +45,6 @@ public class NoteController {
 	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @ModelAttribute NoteCreateRequest request) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
-		// 파일 업로드
 		String filePath = fileService.uploadFile(request.getFile());
 
 		return ResponseEntity.status(201).body(noteService.createNote(user, filePath, request));
@@ -58,20 +59,19 @@ public class NoteController {
 	}
 
 	// 노트 목록 조회 (폴더별)
-	@GetMapping("/folders/{folder}")
-	public ResponseEntity<List<NoteListResponse>> getNoteByFolder(@RequestHeader("Authorization") String token, @PathVariable String folder) {
+	@GetMapping("/folders/{folderId}")
+	public ResponseEntity<List<NoteListResponse>> getNoteByFolder(@RequestHeader("Authorization") String token, @PathVariable Long folderId) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
-		return ResponseEntity.status(200).body(noteService.getNoteListByFolder(user, folder));
+		return ResponseEntity.status(200).body(noteService.getNoteListByFolder(user, folderId));
 	}
 
 	// 유저의 폴더 목록 조회
 	@GetMapping("/folders")
-	public ResponseEntity<List<String>> getFolders(@RequestHeader("Authorization") String token) {
+	public ResponseEntity<List<FolderResponse>> getFolders(@RequestHeader("Authorization") String token) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-		List<String> folders = noteService.getFolders(user);
 
-		return ResponseEntity.status(200).body(folders);
+		return ResponseEntity.status(200).body(noteService.getFolders(user));
 	}
 
 	// 노트 상세 조회
@@ -92,10 +92,10 @@ public class NoteController {
 
 	// 노트 수정
 	@PatchMapping("/{noteId}")
-	public ResponseEntity<MessageResponse> updateNote(@RequestHeader("Authorization") String token, @PathVariable Long noteId, @RequestBody Note noteInfo) {
+	public ResponseEntity<MessageResponse> updateNote(@RequestHeader("Authorization") String token, @PathVariable Long noteId, @RequestBody NoteUpdateRequest request) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
-		return ResponseEntity.status(200).body(noteService.updateNote(user, noteId, noteInfo));
+		return ResponseEntity.status(200).body(noteService.updateNote(user, noteId, request));
 	}
 
 	// AI 요약

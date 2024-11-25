@@ -52,15 +52,8 @@ public class User implements UserDetails {
 	@OneToMany(mappedBy = "user")
 	private List<Note> notes = new ArrayList<>();
 
-//	public void addNote(Note note) {
-//		this.notes.add(note);
-//		note.setUser(this);
-//	}
-//
-//	public void addAudio(Audio audio) {
-//		this.audios.add(audio);
-//		audio.setUser(this);
-//	}
+	@OneToMany(mappedBy = "user")
+	private List<Folder> folders = new ArrayList<>();
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "role", nullable = false)
