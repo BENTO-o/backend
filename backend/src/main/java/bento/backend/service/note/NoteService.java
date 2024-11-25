@@ -4,11 +4,14 @@ import bento.backend.domain.*;
 import bento.backend.repository.NoteRepository;
 import bento.backend.repository.AudioRepository;
 import bento.backend.repository.SummaryRepository;
+import bento.backend.repository.FolderRepository;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.response.MessageResponse;
+import bento.backend.dto.response.FolderResponse;
 import bento.backend.dto.request.NoteCreateRequest;
+import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,6 +30,7 @@ public class NoteService {
 	private final NoteRepository noteRepository;
 	private final AudioRepository audioRepository;
 	private final SummaryRepository summaryRepository;
+	private final FolderRepository folderRepository;
 	private final ObjectMapper objectMapper;
 
 	// 노트 생성
@@ -35,17 +39,23 @@ public class NoteService {
 			request.setFolder("default");
 		}
 
+		Folder folder = folderRepository.findByFolderNameAndUser(request.getFolder(), user)
+			.orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
+
+		// TODO : AI로 API 보내기 (Naver Speech-to-Text API, Prompting)
+		String duration = "01:00:00"; // TODO : STT API로 받아오기
+		String language = "enko";
+
 		Audio audio = Audio.builder()
 				.filePath(filePath)
-				.duration(request.getDuration())
+				.duration(duration)
 				.status(AudioStatus.PROCESSING)
-				.language(request.getLanguage())
+				.language(language)
 				.user(user)
 				.build();
 
 		audioRepository.save(audio);
 
-		// TODO : AI로 API 보내기 (Naver Speech-to-Text API, Prompting)
 
 		// dummy data
 		Map<String, Object> content = new HashMap<>();
@@ -66,7 +76,7 @@ public class NoteService {
 		Note note = Note.builder()
 				.title(request.getTitle())
 				.content(jsonContent.toString())
-				.folder(request.getFolder())
+				.folder(folder)
 				.audio(audio)
 				.user(user)
 				.build();
@@ -95,7 +105,7 @@ public class NoteService {
 			NoteListResponse noteListResponse = NoteListResponse.builder()
 					.noteId(note.getNoteId())
 					.title(note.getTitle())
-					.folder(note.getFolder())
+					.folder(note.getFolder().getFolderName())
 					.createdAt(note.getFormattedDateTime(note.getCreatedAt()))
 					.duration(audio.getDuration())
 					.build();
@@ -107,13 +117,11 @@ public class NoteService {
 	}
 
 	// 노트 목록 조회 (폴더별)
-	public List<NoteListResponse> getNoteListByFolder(User user, String folder) {
-		List<Note> notes = noteRepository.findAllByUserAndFolder(user, folder);
+	public List<NoteListResponse> getNoteListByFolder(User user, Long folderId) {
+		Folder folder = folderRepository.findByFolderIdAndUser(folderId, user)
+				.orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
 
-		if (notes.isEmpty()) {
-			throw new ResourceNotFoundException("Folder not found");
-		}
-
+		List<Note> notes = folder.getNotes();
 		List<NoteListResponse> noteList = new ArrayList<>();
 
 		for (Note note : notes) {
@@ -122,7 +130,7 @@ public class NoteService {
 			NoteListResponse noteListResponse = NoteListResponse.builder()
 					.noteId(note.getNoteId())
 					.title(note.getTitle())
-					.folder(note.getFolder())
+					.folder(note.getFolder().getFolderName())
 					.createdAt(note.getFormattedDateTime(note.getCreatedAt()))
 					.duration(audio.getDuration())
 					.build();
@@ -134,14 +142,15 @@ public class NoteService {
 	}
 
 	// 유저의 폴더 목록 조회
-	public List<String> getFolders(User user) {
-		List<Note> notes = noteRepository.findAllByUser(user);
-		List<String> folders = notes.stream()
-				.map(Note::getFolder)
-				.distinct()
-				.collect(Collectors.toList());
+	public List<FolderResponse> getFolders(User user) {
+		List<Folder> folders = folderRepository.findAllByUser(user);
 
-		return folders;
+		return folders.stream()
+				.map(folder -> FolderResponse.builder()
+						.folderId(folder.getFolderId())
+						.folderName(folder.getFolderName())
+						.build())
+				.collect(Collectors.toList());
 	}
 
 	// 노트 상세 조회
@@ -160,7 +169,7 @@ public class NoteService {
 		return NoteDetailResponse.builder()
 				.noteId(note.getNoteId())
 				.title(note.getTitle())
-				.folder(note.getFolder())
+				.folder(note.getFolder().getFolderName())
 				.createdAt(note.getFormattedDateTime(note.getCreatedAt()))
 				.duration(audio.getDuration())
 				.content(JsonContent)
@@ -170,6 +179,7 @@ public class NoteService {
 				.build();
 	}
 
+	// TODO : delete x, delete 폴더로 옮기기
 	// 노트 삭제
 	public MessageResponse deleteNote(User user, Long noteId) {
 		Note note = noteRepository.findByNoteIdAndUser(noteId, user)
@@ -181,12 +191,25 @@ public class NoteService {
 				.build();
 	}
 
+	// TODO : 카테고리 변경 기능 추가 (변경 시 GPT 프롬프팅 다시 요청)
+
+	// TODO : 스크립트 내용도 수정 가능하도록 변경
 	// 노트 수정
-	public MessageResponse updateNote(User user, Long noteId, Note noteInfo) {
+	public MessageResponse updateNote(User user, Long noteId, NoteUpdateRequest request) {
 		Note note = noteRepository.findByNoteIdAndUser(noteId, user)
 				.orElseThrow(() -> new ResourceNotFoundException("Note not found"));
 
-		note.update(noteInfo.getTitle(), noteInfo.getFolder());
+		if (request.getTitle() != null) {
+			note.updateTitle(request.getTitle());
+		}
+
+		if (request.getFolderName() != null) {
+			Folder newFolder = folderRepository.findByFolderNameAndUser(request.getFolderName(), user)
+					.orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
+
+			note.updateFolder(newFolder);
+		}
+
 		noteRepository.save(note);
 
 		return MessageResponse.builder()
