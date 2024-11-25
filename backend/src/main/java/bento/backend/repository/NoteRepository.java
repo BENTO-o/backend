@@ -3,6 +3,8 @@ package bento.backend.repository;
 import bento.backend.domain.Note;
 import bento.backend.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.List;
@@ -12,6 +14,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 	Optional<Note> findByNoteId(Long noteId);
 	List<Note> findAllByUser(User user);
 
-    Long findUserIdByNoteId(Long noteId);
+	@Query("SELECT n.user.userId FROM Note n WHERE n.noteId = :noteId")
+	Optional<Long> findUserIdByNoteId(@Param("noteId") Long noteId);
+
 	List<Note> findAllByUserAndFolder(User user, String folder);
 }
