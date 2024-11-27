@@ -92,15 +92,19 @@ public class NoteService {
 		List<BookmarkCreateRequest> bookmarkRequests;
 		List<MemoCreateRequest> memoRequests;
 
+		// Default empty JSON arrays if not provided
+		String bookmarkJson = (request.getBookmarks() == null) ? "[]" : request.getBookmarks();
+		String memoJson = (request.getMemos() == null) ? "[]" : request.getMemos();
+
 		try {
 			// Parse bookmarks and memos
 			bookmarkRequests = objectMapper.readValue(
-					request.getBookmarks(),
+					bookmarkJson,
                     new TypeReference<>() {
                     }
 			);
 			memoRequests = objectMapper.readValue(
-					request.getMemos(),
+					memoJson,
                     new TypeReference<>() {
                     }
 			);
@@ -130,7 +134,6 @@ public class NoteService {
 		}
 
 		noteRepository.save(note);
-
 		return MessageResponse.builder()
 				.message("Note created successfully")
 				.build();
