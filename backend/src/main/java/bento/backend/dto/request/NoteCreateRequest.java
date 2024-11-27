@@ -20,12 +20,6 @@ public class NoteCreateRequest {
 	@NotBlank(message = "Folder is mandatory")
 	private String folder;
 
-	@NotBlank(message = "Language is mandatory")
-	private String language;
-
-	@NotBlank(message = "Duration is mandatory")
-	private String duration;
-
 	@NotBlank(message = "File is mandatory")
 	private MultipartFile file;
 

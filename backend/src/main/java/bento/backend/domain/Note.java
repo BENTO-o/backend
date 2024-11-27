@@ -38,12 +38,13 @@ public class Note {
 	@Column(name = "updated_at", nullable = false)
 	private LocalDateTime updatedAt;
 
-	@Column(name = "folder", nullable = false)
-	private String folder;
-
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "audio_id", nullable = false)
 	private Audio audio;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "folder_id", nullable = false)
+	private Folder folder;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)
@@ -65,9 +66,12 @@ public class Note {
 		return dateTime.format(formatter);
 	}
 
-	public void update(String title, String folder) {
-		if (title != null) this.title = title;
-		if (folder != null) this.folder = folder;
+	public void updateTitle(String title) {
+		this.title = title;
+	}
+
+	public void updateFolder(Folder folder) {
+		this.folder = folder;
 	}
 
 	public void setBookmarks(List<Bookmark> bookmarks) {
