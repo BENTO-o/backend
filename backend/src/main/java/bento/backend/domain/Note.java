@@ -73,38 +73,4 @@ public class Note {
 	public void updateFolder(Folder folder) {
 		this.folder = folder;
 	}
-
-	public void setBookmarks(List<Bookmark> bookmarks) {
-		this.bookmarks.clear();
-		if (bookmarks != null) {
-			bookmarks.forEach(this::addBookmark);
-		}
-	}
-
-	public void setMemos(List<Memo> memos) {
-		this.memos.clear();
-		if (memos != null) {
-			memos.forEach(this::addMemo);
-		}
-	}
-
-	public void addBookmark(Bookmark bookmark) {
-		this.bookmarks.add(bookmark);
-		bookmark.setNote(this);
-	}
-
-	public void removeBookmark(Bookmark bookmark) {
-		this.bookmarks.remove(bookmark);
-		bookmark.setNote(null);
-	}
-
-	public void addMemo(Memo memo) {
-		this.memos.add(memo);
-		memo.setNote(this);
-	}
-
-	public void removeMemo(Memo memo) {
-		this.memos.remove(memo);
-		memo.setNote(null);
-	}
 }
