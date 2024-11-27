@@ -904,3 +904,366 @@ paths:
                       type: string
                 example:
                   message: "File not found or unreadable"
+  /bookmarks:
+    post:
+        tags:
+            - Bookmarks
+        summary: Create a bookmark
+        description: Creates a bookmark for a note.
+        operationId: createBookmark
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+              application/json:
+                  schema:
+                    type: object
+                    properties:
+                        noteId:
+                            type: integer
+                            example: 1
+                        timestamp:
+                            type: string
+                            example: "00:00:00"
+        responses:
+            201:
+              description: Bookmark created successfully
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    example: "Bookmark created successfully"
+            400:
+              description: Validation failed for the input data
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        errors:
+                            type: object
+                            additionalProperties:
+                                type: string
+                    example:
+                        noteId: "Note ID is mandatory"
+            403:
+              description: Forbidden
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        message:
+                            type: string
+                            example: "You are not authorized to create a bookmark for this note."
+  /bookmarks/note/{noteId}:
+    get:
+        tags:
+          - Bookmarks
+        summary: Get bookmarks by note ID
+        description: Retrieves bookmarks for a specific note.
+        operationId: getBookmarksByNoteId
+        security:
+          - bearerAuth: []
+        parameters:
+          - name: noteId
+            in: path
+            required: true
+            schema:
+              type: integer
+        responses:
+          200:
+            description: A list of bookmarks
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      bookmark_id:
+                        type: integer
+                        example: 1
+                      note_id:
+                        type: integer
+                        example: 1
+                      timestamp:
+                        type: string
+                        example: "00:00:00"
+          403:
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "You are not authorized to view bookmarks for this note."
+          404:
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "No bookmarks found for the note."
+  /bookmarks/{bookmarkId}:
+    delete:
+        tags:
+            - Bookmarks
+        summary: Delete a bookmark
+        description: Deletes a bookmark by its ID.
+        operationId: deleteBookmark
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: bookmarkId
+              in: path
+              required: true
+              schema:
+                type: integer
+        responses:
+            200:
+              description: Bookmark deleted successfully
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    example: "Bookmark deleted successfully"
+            403:
+              description: Forbidden
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "You are not authorized to delete this bookmark."
+            404:
+              description: Not Found
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Bookmark not found"
+  /memos:
+    post:
+        tags:
+          - Memos
+        summary: Create a memo
+        description: Creates a memo for a note.
+        operationId: createMemo
+        security:
+            - bearerAuth: []
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  noteId:
+                    type: integer
+                    example: 1
+                  timestamp:
+                    type: string
+                    example: "00:00:00"
+                  text:
+                    type: string
+                    example: "This is a memo"
+        responses:
+          201:
+            description: Memo created successfully
+            content:
+              application/json:
+                schema:
+                  type: string
+                  example: "Memo created successfully"
+          400:
+            description: Validation failed for the input data
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    errors:
+                      type: object
+                      additionalProperties:
+                        type: string
+                  example:
+                    noteId: "Note ID is mandatory"
+
+  /memos/note/{noteId}:
+    get:
+        tags:
+          - Memos
+        summary: Get memos by note ID
+        description: Retrieves memos for a specific note.
+        operationId: getMemosByNoteId
+        security:
+            - bearerAuth: []
+        parameters:
+          - name: noteId
+            in: path
+            required: true
+            schema:
+              type: integer
+        responses:
+          200:
+            description: A list of memos
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      memo_id:
+                        type: integer
+                        example: 1
+                      note_id:
+                        type: integer
+                        example: 1
+                      timestamp:
+                        type: string
+                        example: "00:00:00"
+                      text:
+                        type: string
+                        example: "This is a memo"
+          403:
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "You are not authorized to view memos for this note."
+          404:
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "No memos found for the note."
+  /memos/{memoId}:
+    patch: 
+        tags:
+          - Memos
+        summary: Update a memo
+        description: Updates a memo by its ID.
+        operationId: updateMemo
+        security:
+            - bearerAuth: []
+        parameters:
+          - name: memoId
+            in: path
+            required: true
+            schema:
+              type: integer
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  noteId:
+                    type: integer
+                    example: 1
+                  timestamp:
+                    type: string
+                    example: "00:00:00"
+                  text:
+                    type: string
+                    example: "This is an updated memo"
+        responses:
+          200:
+            description: Memo updated successfully
+            content:
+              application/json:
+                schema:
+                  type: string
+                  example: "Memo updated successfully"
+          400:
+            description: Validation failed for the input data
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    errors:
+                      type: object
+                      additionalProperties:
+                        type: string
+                  example:
+                    noteId: "Note ID is mandatory"
+          403:
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "You are not authorized to update this memo."
+                      
+    delete:
+        tags:
+          - Memos
+        summary: Delete a memo
+        description: Deletes a memo by its ID.
+        operationId: deleteMemo
+        security:
+            - bearerAuth: []
+        parameters:
+          - name: memoId
+            in: path
+            required: true
+            schema:
+              type: integer
+        responses:
+          200:
+            description: Memo deleted successfully
+            content:
+              application/json:
+                schema:
+                  type: string
+                  example: "Memo deleted successfully"
+          400:
+            description: validation failed for the input data
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    errors:
+                      type: object
+                      additionalProperties:
+                        type: string
+                  example:
+                    message: "Memo not found"
+          403:
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "You are not authorized to delete this memo."
+
