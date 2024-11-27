@@ -1,14 +1,10 @@
 package bento.backend.controller;
 
-import bento.backend.dto.request.BookmarkCreateRequest;
-import bento.backend.dto.request.MemoCreateRequest;
 import bento.backend.service.auth.AuthService;
 import bento.backend.service.note.NoteService;
 import bento.backend.service.file.FileService;
-import bento.backend.domain.Note;
 import bento.backend.domain.User;
 import bento.backend.domain.Folder;
-import bento.backend.repository.NoteRepository;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.MessageResponse;
@@ -17,19 +13,11 @@ import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.request.NoteCreateRequest;
 import bento.backend.dto.request.NoteUpdateRequest;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import java.util.List;
 
 
 @RestController
@@ -51,34 +39,8 @@ public class NoteController {
 	@PostMapping("")
 	public ResponseEntity<MessageResponse> createNote(
 			@RequestHeader("Authorization") String token,
-			@RequestPart(value = "file", required = true) MultipartFile file,
-			@RequestPart(value = "note") NoteCreateRequest request,
-			@RequestPart(value = "bookmarks", required = false) String bookmarksJson,
-			@RequestPart(value = "memos", required = false) String memosJson
+			@ModelAttribute NoteCreateRequest request
 	) {
-		ObjectMapper objectMapper = new ObjectMapper();
-
-		try {
-			// Parse bookmarks and memos
-			List<BookmarkCreateRequest> bookmarks = objectMapper.readValue(
-					bookmarksJson,
-					new TypeReference<List<BookmarkCreateRequest>>() {}
-			);
-			List<MemoCreateRequest> memos = objectMapper.readValue(
-					memosJson,
-					new TypeReference<List<MemoCreateRequest>>() {}
-			);
-
-			// Set parsed data
-			request.setBookmarks(bookmarks);
-			request.setMemos(memos);
-			request.setFile(file);
-
-		} catch (JsonProcessingException e) {
-			return ResponseEntity.badRequest()
-					.body(new MessageResponse("Invalid JSON format: " + e.getMessage()));
-		}
-
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
 		String filePath = fileService.uploadFile(request.getFile());

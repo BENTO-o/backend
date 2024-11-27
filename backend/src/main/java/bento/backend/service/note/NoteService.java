@@ -1,6 +1,9 @@
 package bento.backend.service.note;
 
+import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.*;
+import bento.backend.dto.request.BookmarkCreateRequest;
+import bento.backend.dto.request.MemoCreateRequest;
 import bento.backend.repository.NoteRepository;
 import bento.backend.repository.AudioRepository;
 import bento.backend.repository.SummaryRepository;
@@ -15,6 +18,8 @@ import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.ValidationException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -83,24 +88,44 @@ public class NoteService {
 				.build();
 
 		// Add bookmarks and memos if present
+		ObjectMapper objectMapper = new ObjectMapper();
+		List<BookmarkCreateRequest> bookmarkRequests;
+		List<MemoCreateRequest> memoRequests;
+
+		try {
+			// Parse bookmarks and memos
+			bookmarkRequests = objectMapper.readValue(
+					request.getBookmarks(),
+                    new TypeReference<>() {
+                    }
+			);
+			memoRequests = objectMapper.readValue(
+					request.getMemos(),
+                    new TypeReference<>() {
+                    }
+			);
+		} catch (JsonProcessingException e) {
+			throw new ValidationException(ErrorMessages.INVALID_JSON_FORMAT);
+		}
+
 		if (request.getBookmarks() != null) {
-			List<Bookmark> bookmarks = request.getBookmarks().stream()
+			List<Bookmark> bookmarks = bookmarkRequests.stream()
 					.map(bookmarkRequest -> Bookmark.builder()
 							.timestamp(bookmarkRequest.getTimestamp())
 							.note(note)
 							.build())
-					.collect(Collectors.toList());
+					.toList();
 			note.getBookmarks().addAll(bookmarks);
 		}
 
 		if (request.getMemos() != null) {
-			List<Memo> memos = request.getMemos().stream()
+			List<Memo> memos = memoRequests.stream()
 					.map(memoRequest -> Memo.builder()
 							.text(memoRequest.getText())
 							.timestamp(memoRequest.getTimestamp())
 							.note(note)
 							.build())
-					.collect(Collectors.toList());
+					.toList();
 			note.getMemos().addAll(memos);
 		}
 
