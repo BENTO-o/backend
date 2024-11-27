@@ -1,6 +1,9 @@
 package bento.backend.service.note;
 
+import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.*;
+import bento.backend.dto.request.BookmarkCreateRequest;
+import bento.backend.dto.request.MemoCreateRequest;
 import bento.backend.repository.NoteRepository;
 import bento.backend.repository.AudioRepository;
 import bento.backend.repository.SummaryRepository;
@@ -15,6 +18,8 @@ import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.ValidationException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -82,8 +87,53 @@ public class NoteService {
 				.user(user)
 				.build();
 
-		noteRepository.save(note);
+		// Add bookmarks and memos if present
+		ObjectMapper objectMapper = new ObjectMapper();
+		List<BookmarkCreateRequest> bookmarkRequests;
+		List<MemoCreateRequest> memoRequests;
 
+		// Default empty JSON arrays if not provided
+		String bookmarkJson = (request.getBookmarks() == null) ? "[]" : request.getBookmarks();
+		String memoJson = (request.getMemos() == null) ? "[]" : request.getMemos();
+
+		try {
+			// Parse bookmarks and memos
+			bookmarkRequests = objectMapper.readValue(
+					bookmarkJson,
+                    new TypeReference<>() {
+                    }
+			);
+			memoRequests = objectMapper.readValue(
+					memoJson,
+                    new TypeReference<>() {
+                    }
+			);
+		} catch (JsonProcessingException e) {
+			throw new ValidationException(ErrorMessages.INVALID_JSON_FORMAT);
+		}
+
+		if (request.getBookmarks() != null) {
+			List<Bookmark> bookmarks = bookmarkRequests.stream()
+					.map(bookmarkRequest -> Bookmark.builder()
+							.timestamp(bookmarkRequest.getTimestamp())
+							.note(note)
+							.build())
+					.toList();
+			note.getBookmarks().addAll(bookmarks);
+		}
+
+		if (request.getMemos() != null) {
+			List<Memo> memos = memoRequests.stream()
+					.map(memoRequest -> Memo.builder()
+							.text(memoRequest.getText())
+							.timestamp(memoRequest.getTimestamp())
+							.note(note)
+							.build())
+					.toList();
+			note.getMemos().addAll(memos);
+		}
+
+		noteRepository.save(note);
 		return MessageResponse.builder()
 				.message("Note created successfully")
 				.build();

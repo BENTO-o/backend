@@ -8,6 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -26,8 +27,6 @@ public class Note {
 	@Column(name = "title")
 	private String title;
 
-	// JSON array of script objects. This is a response from the Naver Speech-to-Text API.
-	// This is a temporary solution. We will change this to a list of script objects.
 	@Column(name = "content", columnDefinition = "json")
 	private String content;
 
@@ -52,10 +51,12 @@ public class Note {
 	private User user;
 
 	@OneToMany(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<Bookmark> bookmarks;
+	@Builder.Default
+	private List<Bookmark> bookmarks = new ArrayList<>();
 
 	@OneToMany(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<Memo> memos;
+	@Builder.Default
+	private List<Memo> memos = new ArrayList<>();
 
 	@OneToOne(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Summary summary;
@@ -71,5 +72,39 @@ public class Note {
 
 	public void updateFolder(Folder folder) {
 		this.folder = folder;
+	}
+
+	public void setBookmarks(List<Bookmark> bookmarks) {
+		this.bookmarks.clear();
+		if (bookmarks != null) {
+			bookmarks.forEach(this::addBookmark);
+		}
+	}
+
+	public void setMemos(List<Memo> memos) {
+		this.memos.clear();
+		if (memos != null) {
+			memos.forEach(this::addMemo);
+		}
+	}
+
+	public void addBookmark(Bookmark bookmark) {
+		this.bookmarks.add(bookmark);
+		bookmark.setNote(this);
+	}
+
+	public void removeBookmark(Bookmark bookmark) {
+		this.bookmarks.remove(bookmark);
+		bookmark.setNote(null);
+	}
+
+	public void addMemo(Memo memo) {
+		this.memos.add(memo);
+		memo.setNote(this);
+	}
+
+	public void removeMemo(Memo memo) {
+		this.memos.remove(memo);
+		memo.setNote(null);
 	}
 }

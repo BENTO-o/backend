@@ -3,10 +3,8 @@ package bento.backend.controller;
 import bento.backend.service.auth.AuthService;
 import bento.backend.service.note.NoteService;
 import bento.backend.service.file.FileService;
-import bento.backend.domain.Note;
 import bento.backend.domain.User;
 import bento.backend.domain.Folder;
-import bento.backend.repository.NoteRepository;
 import bento.backend.dto.response.NoteListResponse;
 import bento.backend.dto.response.NoteDetailResponse;
 import bento.backend.dto.response.MessageResponse;
@@ -18,12 +16,8 @@ import bento.backend.dto.request.NoteUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import java.util.List;
 
 
 @RestController
@@ -43,7 +37,10 @@ public class NoteController {
 
 	// 노트 생성
 	@PostMapping("")
-	public ResponseEntity<MessageResponse> createNote(@RequestHeader("Authorization") String token, @ModelAttribute NoteCreateRequest request) {
+	public ResponseEntity<MessageResponse> createNote(
+			@RequestHeader("Authorization") String token,
+			@ModelAttribute NoteCreateRequest request
+	) {
 		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
 
 		String filePath = fileService.uploadFile(request.getFile());
