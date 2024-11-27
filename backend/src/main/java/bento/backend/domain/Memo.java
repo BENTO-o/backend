@@ -30,9 +30,4 @@ public class Memo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "note_id", nullable = false)
     private Note note;
-
-    // 연관관계 메서드
-    public void setNote(Note note) {
-        this.note = note;
-    }
 }
