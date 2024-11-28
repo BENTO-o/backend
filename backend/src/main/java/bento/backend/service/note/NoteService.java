@@ -82,7 +82,7 @@ public class NoteService {
 
         Note note = Note.builder()
                 .title(request.getTitle())
-                .content(jsonContent.toString())
+                .content(jsonContent.toString()) // TODO: 실제 콘텐츠 설정
                 .folder(folder)
                 .audio(audio)
                 .user(user)
@@ -90,28 +90,25 @@ public class NoteService {
 
         // Add bookmarks and memos if present
         ObjectMapper objectMapper = new ObjectMapper();
+        List<String> topics;
         List<BookmarkCreateRequest> bookmarkRequests;
         List<MemoCreateRequest> memoRequests;
 
         // Default empty JSON arrays if not provided
+        String topicsJson = (request.getTopics() == null) ? "[]" : request.getTopics();
         String bookmarkJson = (request.getBookmarks() == null) ? "[]" : request.getBookmarks();
         String memoJson = (request.getMemos() == null) ? "[]" : request.getMemos();
 
         try {
-            // Parse bookmarks and memos
-            bookmarkRequests = objectMapper.readValue(
-                    bookmarkJson,
-                    new TypeReference<>() {
-                    }
-            );
-            memoRequests = objectMapper.readValue(
-                    memoJson,
-                    new TypeReference<>() {
-                    }
-            );
+            // Parse topics, bookmarks, and memos
+            topics = objectMapper.readValue( topicsJson, new TypeReference<>() {} );
+            bookmarkRequests = objectMapper.readValue( bookmarkJson, new TypeReference<>() {} );
+            memoRequests = objectMapper.readValue( memoJson, new TypeReference<>() {} );
         } catch (JsonProcessingException e) {
             throw new ValidationException(ErrorMessages.INVALID_JSON_FORMAT);
         }
+        note.getTopics().addAll(topics);
+
         List<Bookmark> bookmarks = bookmarkRequests.stream()
                 .map(bookmarkRequest -> Bookmark.builder()
                         .timestamp(bookmarkRequest.getTimestamp())

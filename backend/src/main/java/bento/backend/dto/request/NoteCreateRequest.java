@@ -21,4 +21,5 @@ public class NoteCreateRequest {
 
 	private String bookmarks; // 북마크 리스트
 	private String memos;     // 메모 리스트
+	private String topics; 	  // 주제 리스트
 }
