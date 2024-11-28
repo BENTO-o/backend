@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -31,8 +30,7 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/users/register", "/users/login").permitAll() // 인증 없이 허용할 경로
-                        .requestMatchers("/oauth2/authorization/**").permitAll()  // OAuth2 인증 시작 경로 허용
+                        .requestMatchers("/users/register", "/users/login", "/oauth/**").permitAll() // 인증 없이 허용할 경로
                         .anyRequest().authenticated()  // 그 외의 모든 요청은 인증 필요
                 )
                 .oauth2Login(oauth2 -> oauth2
