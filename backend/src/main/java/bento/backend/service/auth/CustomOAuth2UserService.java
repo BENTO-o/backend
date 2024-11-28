@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -47,10 +46,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private Map<String, Object> extractAttributes(OAuth2User oAuth2User) {
         Object response = oAuth2User.getAttributes().get("response");
-        if (!(response instanceof Map)) {
-            throw new ValidationException(ErrorMessages.OAUTH_RESPONSE_ERROR);
+        if (response instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castedResponse = (Map<String, Object>) response;
+            return castedResponse;
         }
-        return (Map<String, Object>) response;
+        throw new ValidationException(ErrorMessages.OAUTH_RESPONSE_ERROR);
     }
 
     private void validateAttributes(String email, String name, String providerId) {
