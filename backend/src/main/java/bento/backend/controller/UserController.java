@@ -2,6 +2,7 @@ package bento.backend.controller;
 
 import bento.backend.constant.SuccessMessages;
 import bento.backend.dto.request.*;
+import bento.backend.security.JwtTokenProvider;
 import bento.backend.service.user.UserService;
 import bento.backend.domain.User;
 import bento.backend.dto.response.UserLoginResponse;
@@ -10,6 +11,7 @@ import bento.backend.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -20,6 +22,7 @@ import java.util.Map;
 public class UserController {
 	private final AuthService authService; // 로그인, 로그아웃 관련 로직
 	private final UserService userService;
+	private final JwtTokenProvider jwtTokenProvider;
 
 	@PostMapping("/login")
 	public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody UserLoginRequest loginRequest) {
@@ -32,6 +35,33 @@ public class UserController {
 		authService.registerUser(request);
 		Map<String, String> response = Map.of("message", SuccessMessages.USER_REGISTERED);
 		return ResponseEntity.status(201).body(response);
+	}
+
+	@PostMapping("/refresh")
+	public ResponseEntity<UserLoginResponse> refreshToken(
+			@RequestHeader("Authorization") String oldAccessToken,
+			@RequestBody RefreshTokenRequest request) {
+		String refreshToken = request.getRefreshToken();
+
+		// 새 Access Token 발급
+		String newAccessToken = authService.refreshAccessToken(refreshToken);
+
+		// 기존 Access Token을 블랙리스트에 추가
+		if (jwtTokenProvider.validateToken(oldAccessToken)) {
+			long expirationTime = jwtTokenProvider.getRemainingExpirationTime(oldAccessToken.replace("Bearer ", ""));
+			authService.invalidateToken(oldAccessToken, expirationTime);
+		}
+
+		return ResponseEntity.ok(UserLoginResponse.of(newAccessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationTime()));
+	}
+
+
+	@PostMapping("/logout")
+	public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String token) {
+		String accessToken = token.replace("Bearer ", ""); // Bearer 토큰 제거
+		authService.logout(accessToken); // 토큰을 블랙리스트에 추가
+		Map<String, String> response = Map.of("message", SuccessMessages.USER_LOGGED_OUT);
+		return ResponseEntity.status(200).body(response);
 	}
 
 	@PostMapping("/request-password-reset")
@@ -50,28 +80,28 @@ public class UserController {
 
 	@GetMapping("/reset-password/verify")
 	public ResponseEntity<Map<String, String>> verifyResetPasswordToken(@RequestParam String token) {
-		authService.verifyResetPasswordToken(token);
 		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_RESET_TOKEN_VERIFIED);
 		return ResponseEntity.status(200).body(response);
 	}
 
 
 	@GetMapping("/me")
-	public ResponseEntity<UserProfileResponse> getCurrentUser(@RequestHeader("Authorization") String token) {
-		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-		UserProfileResponse currentUser = new UserProfileResponse(
-                user.getUserId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getRole().toString(),
-                user.getOauthProviderId()
-        );
-		return ResponseEntity.status(200).body(currentUser);
+	public ResponseEntity<UserProfileResponse> getCurrentUser(@AuthenticationPrincipal Long userId) {
+		User user = userService.getUserById(userId); // Fetch the user from the database
+		UserProfileResponse response = new UserProfileResponse(
+				user.getUserId(),
+				user.getUsername(),
+				user.getEmail(),
+				user.getRole().toString(),
+				user.getOauthProviderId()
+		);
+		return ResponseEntity.ok(response);
 	}
 
+
 	@PatchMapping("/me")
-	public ResponseEntity<UserProfileResponse> updateUser(@RequestHeader("Authorization") String token, @Valid @RequestBody UserUpdateRequest request) {
-		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+	public ResponseEntity<UserProfileResponse> updateUser(@AuthenticationPrincipal Long userId, @Valid @RequestBody UserUpdateRequest request) {
+		User user = userService.getUserById(userId);
 		User updatedUser = userService.updateUser(user.getUserId(), request);
 		UserProfileResponse currentUser = new UserProfileResponse(
 				updatedUser.getUserId(),
@@ -84,19 +114,38 @@ public class UserController {
 	}
 
 	@DeleteMapping("/me")
-	public ResponseEntity<Map<String, String>> deleteUser(@RequestHeader("Authorization") String token) {
-		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-		userService.deactivateUser(user.getUserId());
+	public ResponseEntity<Map<String, String>> deleteUser(
+			@AuthenticationPrincipal Long userId,
+			@RequestHeader("Authorization") String token) {
+		String accessToken = token.replace("Bearer ", "");
+
+		// 계정 비활성화
+		userService.deactivateUser(userId);
+
+		// Access Token 블랙리스트 추가
+		long expirationTime = jwtTokenProvider.getRemainingExpirationTime(accessToken);
+		authService.invalidateToken(accessToken, expirationTime);
+
 		Map<String, String> response = Map.of("message", SuccessMessages.USER_DEACTIVATED);
 		return ResponseEntity.status(200).body(response);
 	}
 
+
 	@PutMapping("/me/password")
-	public ResponseEntity<Map<String, String>> updatePassword(@RequestHeader("Authorization") String token, @Valid @RequestBody UserPasswordUpdateRequest request) {
-		User user = authService.getUserFromToken(token.replace("Bearer ", ""));
-		userService.updatePassword(user.getUserId(), request);
+	public ResponseEntity<Map<String, String>> updatePassword(
+			@AuthenticationPrincipal Long userId,
+			@RequestHeader("Authorization") String token,
+			@Valid @RequestBody UserPasswordUpdateRequest request) {
+		String accessToken = token.replace("Bearer ", "");
+		userService.updatePassword(userId, request); // 비밀번호 업데이트
+
+		// 현재 Access Token을 블랙리스트에 추가
+		long expirationTime = jwtTokenProvider.getRemainingExpirationTime(accessToken);
+		authService.invalidateToken(accessToken, expirationTime);
+
 		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_UPDATED);
 		return ResponseEntity.status(200).body(response);
 	}
+
 }
 

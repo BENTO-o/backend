@@ -28,21 +28,26 @@ import java.util.Map;
 public class AuthService {
 //    Authorization과 Authentication을 처리하는 서비스입니다.
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
     private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordService passwordService;
     private final JavaMailSender mailSender;
 
     //    Authentication
-    public UserLoginResponse login (UserLoginRequest loginRequest) {
+    public UserLoginResponse login(UserLoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
         User user = userService.findByEmail(email);
+
         if (!userService.verifyUserPassword(user.getUserId(), password)) {
             throw new UnauthorizedException(ErrorMessages.CREDENTIALS_INVALID_ERROR);
         }
-        String token = jwtTokenProvider.generateToken(user.getUserId(), String.valueOf(user.getRole()));
-        return UserLoginResponse.of(token, jwtTokenProvider.getExpirationTime());
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUserId(), String.valueOf(user.getRole()));
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserId());
+
+        return UserLoginResponse.of(accessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationTime());
     }
 
     public Map<String, String> registerUser(UserRegistrationRequest request) {
@@ -62,21 +67,30 @@ public class AuthService {
         return Map.of("message", SuccessMessages.USER_REGISTERED);
     }
 
+    public void logout(String token) {
+        // 블랙리스트에 토큰 추가
+        long expirationTime = jwtTokenProvider.getRemainingExpirationTime(token); // 남은 만료 시간
+        tokenBlacklistService.blacklistToken(token, expirationTime);
+    }
+
     //    Authorization
+    public String refreshAccessToken(String refreshToken) {
+            Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+
+            // 역할 정보는 UserService에서 가져옴
+            String role = userService.getRoleByUserId(userId);
+
+            return jwtTokenProvider.generateAccessToken(userId, role);
+    }
+
     public User getUserFromToken(String token) {
-        if (!jwtTokenProvider.validateToken(token)) {
-            throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
-        }
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        User user = userService.findByUserId(userId);
+        User user = userService.getUserById(userId);
         return user;
     }
 
     public boolean isAdminUser(String token) {
-        if (!jwtTokenProvider.validateToken(token)) {
-            throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
-        }
-        String role = jwtTokenProvider.getRoleFromToken(token);
+        String role = jwtTokenProvider.getClaimeFromToken(token, "role");
         return role.equals(Role.ROLE_ADMIN.toString());
     }
 
@@ -106,16 +120,14 @@ public class AuthService {
     public void resetPassword(@Valid UserPasswordResetExecutionRequest request) {
         String token = request.getToken();
         String password = request.getPassword();
-        String email = jwtTokenProvider.getEmailFromResetToken(token);
+        String email = jwtTokenProvider.getSubjectFromToken(token);
         User user = userService.findByEmail(email);
         String encryptedPassword = passwordService.encodePassword(password);
         user.setPassword(encryptedPassword);
         userRepository.save(user);
     }
 
-    public void verifyResetPasswordToken(String token) {
-        if (!jwtTokenProvider.validateResetToken(token)) {
-            throw new UnauthorizedException(ErrorMessages.TOKEN_VALIDATION_ERROR);
-        }
+    public void invalidateToken(String accessToken, long expirationTime) {
+        tokenBlacklistService.blacklistToken(accessToken, expirationTime);
     }
 }

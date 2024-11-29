@@ -19,7 +19,7 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final PasswordService passwordService;
 
-	public User findByUserId(final Long userId) {
+	public User getUserById(final Long userId) {
 		return userRepository.findById(userId)
 				.orElseThrow(() -> new BadRequestException(ErrorMessages.USER_ID_NOT_FOUND_ERROR + userId));
 	}
@@ -35,12 +35,12 @@ public class UserService {
 	}
 
 	public boolean verifyUserPassword(Long userId, String rawPassword) {
-		User user = findByUserId(userId);
+		User user = getUserById(userId);
 		return passwordService.verifyPassword(rawPassword, user.getPassword());
 	}
 
 	public User updateEmail(Long userId, String newEmail) {
-		User user = findByUserId(userId);
+		User user = getUserById(userId);
 		if (userRepository.existsByEmail(newEmail)) {
 			throw new ConflictException(ErrorMessages.DUPLICATE_EMAIL_ERROR);
 		}
@@ -62,11 +62,11 @@ public class UserService {
 	}
 
 	public User getCurrentUser(Long userId) {
-		return findByUserId(userId);
+		return getUserById(userId);
 	}
 
 	public User getAdminUser(Long userId) {
-		User user = findByUserId(userId);
+		User user = getUserById(userId);
 		if (!user.getRole().toString().equals("ROLE_ADMIN")) {
 			throw new BadRequestException(ErrorMessages.CREDENTIALS_INVALID_ERROR);
 		}
@@ -74,7 +74,7 @@ public class UserService {
 	}
 
 	public User updateUser(Long userId, @Valid UserUpdateRequest request) {
-		User user = findByUserId(userId);
+		User user = getUserById(userId);
 		if (userRepository.existsByUsername(request.getUsername()) && !request.getUsername().equals(user.getUsername())) {
 			throw new ConflictException(String.format(ErrorMessages.DUPLICATE_USERNAME_ERROR, request.getUsername()));
 		}
@@ -83,13 +83,13 @@ public class UserService {
 	}
 
 	public void deactivateUser(Long userId) {
-		User user = findByUserId(userId);
+		User user = getUserById(userId);
 		user.setActive(false);
 		userRepository.save(user);
 	}
 
 	public void updatePassword(Long userId, @Valid UserPasswordUpdateRequest request) {
-		User user = findByUserId(userId);
+		User user = getUserById(userId);
 		if (!verifyUserPassword(userId, request.getCurrentPassword())) {
 			throw new BadRequestException(ErrorMessages.PASSWORD_INCORRECT_ERROR);
 		}
@@ -98,4 +98,9 @@ public class UserService {
 		user.setPassword(encryptedPassword);
 		userRepository.save(user);
 	}
+
+    public String getRoleByUserId(Long userId) {
+		User user = getUserById(userId);
+		return user.getRole().toString();
+    }
 }
