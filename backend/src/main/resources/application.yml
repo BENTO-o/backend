@@ -48,10 +48,15 @@ spring:
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
-  expiration-time: ${JWT_EXPIRATION_TIME}
+  expiration-time: ${JWT_ACCESS_EXPIRATION_TIME}
 
 allowed-origin: ${ALLOWED_ORIGIN}
 
 file:
   upload:
     path: ${FILE_UPLOAD_PATH}
+
+logging:
+  file:
+    name: logs/application.log  # 로그 파일 경로
+
