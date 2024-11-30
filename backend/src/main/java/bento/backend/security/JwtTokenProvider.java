@@ -93,10 +93,6 @@ public class JwtTokenProvider {
         return Collections.singletonList(new SimpleGrantedAuthority(role));
     }
 
-    public long getRemainingExpirationTime(String token) {
-        return jwtParser.parseClaimsJws(token).getBody().getExpiration().getTime() - System.currentTimeMillis();
-    }
-
     public long getRefreshTokenExpirationTime() {
         return refreshExpirationTime;
     }

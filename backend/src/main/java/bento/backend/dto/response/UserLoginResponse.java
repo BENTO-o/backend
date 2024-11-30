@@ -1,7 +1,6 @@
 package bento.backend.dto.response;
 
 import bento.backend.constant.SuccessMessages;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Getter

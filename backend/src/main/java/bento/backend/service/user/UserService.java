@@ -1,13 +1,11 @@
 package bento.backend.service.user;
 
 import bento.backend.constant.ErrorMessages;
-import bento.backend.dto.request.UserPasswordUpdateRequest;
 import bento.backend.dto.request.UserUpdateRequest;
 import bento.backend.exception.BadRequestException;
 import bento.backend.exception.ConflictException;
 import bento.backend.service.auth.RefreshTokenService;
 import jakarta.validation.Valid;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

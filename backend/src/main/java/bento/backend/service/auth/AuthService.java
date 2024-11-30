@@ -5,8 +5,6 @@ import bento.backend.constant.SuccessMessages;
 import bento.backend.domain.Role;
 import bento.backend.domain.User;
 import bento.backend.dto.request.UserLoginRequest;
-import bento.backend.dto.request.UserPasswordResetExecutionRequest;
-import bento.backend.dto.request.UserPasswordResetRequest;
 import bento.backend.dto.request.UserRegistrationRequest;
 import bento.backend.dto.response.UserLoginResponse;
 import bento.backend.exception.ConflictException;
@@ -15,11 +13,8 @@ import bento.backend.repository.UserRepository;
 import bento.backend.security.JwtTokenProvider;
 import bento.backend.service.user.PasswordService;
 import bento.backend.service.user.UserService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
-import org.springframework.mail.javamail.JavaMailSender;
 
 import java.util.Map;
 

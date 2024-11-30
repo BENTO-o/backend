@@ -28,11 +28,8 @@ public class RefreshTokenService {
     // Refresh Token 검증
     public boolean validateRefreshToken(String token) {
         Optional<RefreshToken> refreshToken = refreshTokenRepository.findByRefreshToken(token);
-        if (refreshToken.isEmpty()) {
-            return false; // 토큰이 존재하지 않음
-        }
+        return refreshToken.map(value -> value.getExpiresAt().after(new Date())).orElse(false);
         // 만료 시간 확인
-        return refreshToken.get().getExpiresAt().after(new Date());
     }
 
     @Transactional

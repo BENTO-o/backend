@@ -114,7 +114,6 @@ public class UserController {
 	public ResponseEntity<Map<String, String>> deleteUser(
 			@AuthenticationPrincipal Long userId,
 			@RequestHeader("Authorization") String token) {
-		String accessToken = token.replace("Bearer ", "");
 
 		// 계정 비활성화
 		userService.deactivateUser(userId);
@@ -129,7 +128,6 @@ public class UserController {
 			@AuthenticationPrincipal Long userId,
 			@RequestHeader("Authorization") String token,
 			@Valid @RequestBody UserPasswordUpdateRequest request) {
-		String accessToken = token.replace("Bearer ", "");
 		passwordService.updatePassword(userId, request); // 비밀번호 업데이트
 
 		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_UPDATED);
