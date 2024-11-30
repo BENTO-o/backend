@@ -1,27 +1,27 @@
 package bento.backend.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.expiration-time}")
-    private long expirationTime; // Configure in application.properties (in milliseconds)
+    @Value("${jwt.access-expiration-time}")
+    private long accessExpirationTime;
+    @Value("${jwt.refresh-expiration-time}")
+    private long refreshExpirationTime;
 
     private final SecretKey secretKey;
     private final JwtParser jwtParser;
@@ -33,66 +33,67 @@ public class JwtTokenProvider {
         this.jwtBuilder = Jwts.builder().signWith(this.secretKey, SignatureAlgorithm.HS512);
     }
 
-//    Token generation
-    public String generateToken(Long userId, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role); // Include roles or other claims as necessary
-
+    //    Token generation
+    public String generateAccessToken(Long userId, String role) {
         return jwtBuilder
-                .setClaims(claims)
-                .setSubject(String.valueOf(userId)) // User ID as the subject
+                .setSubject(String.valueOf(userId))
+                .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + accessExpirationTime))
                 .compact();
     }
 
-    public Long getUserIdFromToken(String token) {
-        Claims claims = jwtParser
-                .parseClaimsJws(token)
-                .getBody();
-        return Long.parseLong(claims.getSubject());
+    public String generateRefreshToken(Long userId) {
+        return jwtBuilder
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
+                .compact();
     }
 
-    public String getRoleFromToken(String token) {
-        Claims claims = jwtParser
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.get("role", String.class);
-    }
-
-    public int getExpirationTime() {
-        return (int) expirationTime / 1000;
+    public String generateResetToken(String email) {
+        return jwtBuilder
+                .setSubject(email)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 300000)) // 5 minutes
+                .compact();
     }
 
     public boolean validateToken(String token) {
         try {
             Claims claims = jwtParser.parseClaimsJws(token).getBody();
-            return !claims.getExpiration().before(new Date());
-        } catch (Exception e) {
+            return !claims.getExpiration().before(new Date(System.currentTimeMillis()));
+        } catch (ExpiredJwtException e) {
+            log.warn("Token expired: {}", e.getMessage());
+            return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid token: {}", e.getMessage());
             return false;
         }
     }
 
-    public boolean validateResetToken(String token) {
-        try {
-            jwtParser.parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    //    Password reset token generation
-    public String generateResetToken(String email) {
-        return jwtBuilder
-                .setSubject(email) // 해시된 이메일 사용
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 600000))
-                .signWith(SignatureAlgorithm.HS256, secretKey)
-                .compact();
-    }
-
-    public String getEmailFromResetToken(String token) {
+    public String getSubjectFromToken(String token) {
         return jwtParser.parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public Long getUserIdFromToken(String token) {
+        return Long.parseLong(getSubjectFromToken(token)); // Convert to Long
+    }
+
+    public String getClaimeFromToken(String token, String key) {
+        return jwtParser.parseClaimsJws(token).getBody().get(key, String.class);
+    }
+
+    public int getAccessTokenExpirationTime() {
+        return (int) accessExpirationTime / 1000; // Convert to seconds
+    }
+
+    public Collection<? extends GrantedAuthority> getAuthorities(String token) {
+        String role = getClaimeFromToken(token, "role");
+        return Collections.singletonList(new SimpleGrantedAuthority(role));
+    }
+
+    public long getRefreshTokenExpirationTime() {
+        return refreshExpirationTime;
     }
 }

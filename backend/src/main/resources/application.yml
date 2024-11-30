@@ -44,6 +44,7 @@ spring:
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
-  expiration-time: ${JWT_EXPIRATION_TIME}
+  access-expiration-time: ${JWT_ACCESS_EXPIRATION_TIME}
+  refresh-expiration-time: ${JWT_REFRESH_EXPIRATION_TIME}
 
 allowed-origin: ${ALLOWED_ORIGIN}
