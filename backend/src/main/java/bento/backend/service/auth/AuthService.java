@@ -26,28 +26,36 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-//    Authorization과 Authentication을 처리하는 서비스입니다.
-    private final JwtTokenProvider jwtTokenProvider;
-    private final TokenBlacklistService tokenBlacklistService;
+    //    Authorization과 Authentication을 처리하는 서비스입니다.
     private final UserService userService;
-    private final UserRepository userRepository;
     private final PasswordService passwordService;
-    private final JavaMailSender mailSender;
+    private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
     //    Authentication
     public UserLoginResponse login(UserLoginRequest loginRequest) {
-        String email = loginRequest.getEmail();
-        String password = loginRequest.getPassword();
-        User user = userService.findByEmail(email);
-
-        if (!userService.verifyUserPassword(user.getUserId(), password)) {
+        User user = userService.findByEmail(loginRequest.getEmail());
+        if (!passwordService.verifyPassword(loginRequest.getPassword(), user.getPassword())) {
             throw new UnauthorizedException(ErrorMessages.CREDENTIALS_INVALID_ERROR);
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getUserId(), String.valueOf(user.getRole()));
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserId());
+        if (!user.isActive()) {
+            throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE_ERROR);
+        }
 
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUserId(), user.getRole().toString());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserId());
+        refreshTokenService.createRefreshToken(user.getUserId(), refreshToken, jwtTokenProvider.getRefreshTokenExpirationTime());
         return UserLoginResponse.of(accessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationTime());
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokenService.deleteRefreshToken(refreshToken);
+    }
+
+    public void logoutAllDevices(Long userId) {
+        refreshTokenService.deleteRefreshTokensByUserId(userId);
     }
 
     public Map<String, String> registerUser(UserRegistrationRequest request) {
@@ -67,67 +75,15 @@ public class AuthService {
         return Map.of("message", SuccessMessages.USER_REGISTERED);
     }
 
-    public void logout(String token) {
-        // 블랙리스트에 토큰 추가
-        long expirationTime = jwtTokenProvider.getRemainingExpirationTime(token); // 남은 만료 시간
-        tokenBlacklistService.blacklistToken(token, expirationTime);
-    }
 
     //    Authorization
     public String refreshAccessToken(String refreshToken) {
-            Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
-
-            // 역할 정보는 UserService에서 가져옴
-            String role = userService.getRoleByUserId(userId);
-
-            return jwtTokenProvider.generateAccessToken(userId, role);
-    }
-
-    public User getUserFromToken(String token) {
-        Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        User user = userService.getUserById(userId);
-        return user;
-    }
-
-    public boolean isAdminUser(String token) {
-        String role = jwtTokenProvider.getClaimeFromToken(token, "role");
-        return role.equals(Role.ROLE_ADMIN.toString());
-    }
-
-    public void requestPasswordReset(@Valid UserPasswordResetRequest request) {
-        String email = request.getEmail();
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            throw new UnauthorizedException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email);
+        if (!refreshTokenService.validateRefreshToken(refreshToken)) {
+            throw new UnauthorizedException("Invalid or expired refresh token");
         }
-        // 비밀번호 재설정 토큰 생성
-        String token = jwtTokenProvider.generateResetToken(email);
 
-        // 재설정 링크 생성
-        String resetLink = "https://bento-o.site/reset-password?token=" + token;
-
-        // 이메일 전송
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(email);
-        message.setSubject("Password Reset Verification");
-        message.setText("We received a request to reset your password. Please verify your identity by clicking the link below:\n\n" +
-                resetLink + "\n\n" +
-                "If you did not request a password reset, please ignore this email.\n\n" +
-                "Thanks,\nTeam Bento");
-        mailSender.send(message);
-    }
-
-    public void resetPassword(@Valid UserPasswordResetExecutionRequest request) {
-        String token = request.getToken();
-        String password = request.getPassword();
-        String email = jwtTokenProvider.getSubjectFromToken(token);
-        User user = userService.findByEmail(email);
-        String encryptedPassword = passwordService.encodePassword(password);
-        user.setPassword(encryptedPassword);
-        userRepository.save(user);
-    }
-
-    public void invalidateToken(String accessToken, long expirationTime) {
-        tokenBlacklistService.blacklistToken(accessToken, expirationTime);
+        Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+        String role = userService.getRoleByUserId(userId);
+        return jwtTokenProvider.generateAccessToken(userId, role);
     }
 }

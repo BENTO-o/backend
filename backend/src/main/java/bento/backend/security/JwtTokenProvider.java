@@ -96,4 +96,8 @@ public class JwtTokenProvider {
     public long getRemainingExpirationTime(String token) {
         return jwtParser.parseClaimsJws(token).getBody().getExpiration().getTime() - System.currentTimeMillis();
     }
+
+    public long getRefreshTokenExpirationTime() {
+        return refreshExpirationTime;
+    }
 }

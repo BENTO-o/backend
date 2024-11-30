@@ -5,6 +5,7 @@ import bento.backend.dto.request.UserPasswordUpdateRequest;
 import bento.backend.dto.request.UserUpdateRequest;
 import bento.backend.exception.BadRequestException;
 import bento.backend.exception.ConflictException;
+import bento.backend.service.auth.RefreshTokenService;
 import jakarta.validation.Valid;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -12,65 +13,22 @@ import org.springframework.stereotype.Service;
 
 import bento.backend.repository.UserRepository;
 import bento.backend.domain.User;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+	private final RefreshTokenService refreshTokenService;
 	private final UserRepository userRepository;
-	private final PasswordService passwordService;
 
 	public User getUserById(final Long userId) {
 		return userRepository.findById(userId)
 				.orElseThrow(() -> new BadRequestException(ErrorMessages.USER_ID_NOT_FOUND_ERROR + userId));
 	}
 
-	public User findByUsername(String username) {
-		return userRepository.findByUsername(username)
-				.orElseThrow(() -> new BadRequestException(ErrorMessages.USER_ID_NOT_FOUND_ERROR + username));
-	}
-
 	public User findByEmail(String email) {
 		return userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException(ErrorMessages.USER_EMAIL_NOT_FOUND_ERROR + email));
-	}
-
-	public boolean verifyUserPassword(Long userId, String rawPassword) {
-		User user = getUserById(userId);
-		return passwordService.verifyPassword(rawPassword, user.getPassword());
-	}
-
-	public User updateEmail(Long userId, String newEmail) {
-		User user = getUserById(userId);
-		if (userRepository.existsByEmail(newEmail)) {
-			throw new ConflictException(ErrorMessages.DUPLICATE_EMAIL_ERROR);
-		}
-		else if (newEmail == null || newEmail.isEmpty()) {
-			throw new ValidationException(ErrorMessages.USER_EMAIL_EMPTY_ERROR);
-		}
-		else if (newEmail.equals(user.getEmail())) {
-			throw new BadRequestException(ErrorMessages.SAME_EMAIL_ERROR);
-		}
-		user.setEmail(newEmail);
-		return userRepository.save(user);
-	}
-
-	public void deleteUser(Long userId) {
-		if (!userRepository.existsById(userId)) {
-			throw new BadRequestException(ErrorMessages.USER_ID_NOT_FOUND_ERROR + userId);
-		}
-		userRepository.deleteById(userId);
-	}
-
-	public User getCurrentUser(Long userId) {
-		return getUserById(userId);
-	}
-
-	public User getAdminUser(Long userId) {
-		User user = getUserById(userId);
-		if (!user.getRole().toString().equals("ROLE_ADMIN")) {
-			throw new BadRequestException(ErrorMessages.CREDENTIALS_INVALID_ERROR);
-		}
-		return user;
 	}
 
 	public User updateUser(Long userId, @Valid UserUpdateRequest request) {
@@ -82,25 +40,29 @@ public class UserService {
 		return userRepository.save(user);
 	}
 
+	@Transactional
 	public void deactivateUser(Long userId) {
 		User user = getUserById(userId);
 		user.setActive(false);
+		refreshTokenService.deleteRefreshTokenByUserId(userId);
 		userRepository.save(user);
 	}
 
-	public void updatePassword(Long userId, @Valid UserPasswordUpdateRequest request) {
-		User user = getUserById(userId);
-		if (!verifyUserPassword(userId, request.getCurrentPassword())) {
-			throw new BadRequestException(ErrorMessages.PASSWORD_INCORRECT_ERROR);
+	public void deleteUser(Long userId) {
+		if (!userRepository.existsById(userId)) {
+			throw new BadRequestException(ErrorMessages.USER_ID_NOT_FOUND_ERROR + userId);
 		}
-		String newPassword = request.getNewPassword();
-		String encryptedPassword = passwordService.encodePassword(newPassword);
-		user.setPassword(encryptedPassword);
-		userRepository.save(user);
+		refreshTokenService.deleteRefreshTokenByUserId(userId);
+		userRepository.deleteById(userId);
 	}
 
     public String getRoleByUserId(Long userId) {
 		User user = getUserById(userId);
 		return user.getRole().toString();
     }
+
+	public boolean isActive(Long userId) {
+		User user = getUserById(userId);
+		return user.isActive();
+	}
 }

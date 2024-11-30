@@ -23,4 +23,14 @@ public class UserLoginResponse {
                 .expiresIn(expiresIn)
                 .build();
     }
+
+    public static UserLoginResponse of(String accessToken, String refreshToken, int expiresIn, String message) {
+        return UserLoginResponse.builder()
+                .message(message)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(expiresIn)
+                .build();
+    }
 }

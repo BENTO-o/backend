@@ -1,6 +1,6 @@
 package bento.backend.security;
 
-import bento.backend.service.auth.TokenBlacklistService;
+import bento.backend.service.user.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,11 +17,11 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final TokenBlacklistService tokenBlacklistService;
+    private final UserService userService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, TokenBlacklistService tokenBlacklistService) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserService userService) {
         this.jwtTokenProvider = jwtTokenProvider;
-        this.tokenBlacklistService = tokenBlacklistService;
+        this.userService = userService;
     }
 
     @Override
@@ -32,21 +32,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 if (jwtTokenProvider.validateToken(token)) {
-                    // 토큰이 블랙리스트에 있는지 확인
-                    if (tokenBlacklistService.isTokenBlacklisted(token)) {
+
+                    // 토큰에서 userId 추출
+                    Long userId = jwtTokenProvider.getUserIdFromToken(token);
+
+                    // 사용자 상태 확인.
+                    // 사용자가 로그인한 후 관리자에 의해 계정이 비활성화될 수 있습니다.
+                    if (!userService.isActive(userId)) {
                         response.setContentType("application/json");
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        response.getWriter().write("{\"error\": \"Token is blacklisted\"}");
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.getWriter().write("{\"error\": \"User account is inactive\"}");
                         response.getWriter().flush();
                         return;
                     }
 
-                    // 토큰에서 userId 추출
-                    Long userId = jwtTokenProvider.getUserIdFromToken(token);
                     Authentication authentication = new UsernamePasswordAuthenticationToken(
                             userId, null, jwtTokenProvider.getAuthorities(token));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
+
             } catch (Exception e) {
                 response.setContentType("application/json");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
