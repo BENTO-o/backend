@@ -51,7 +51,7 @@ public class UserController {
 	public ResponseEntity<Map<String, String>> logoutAllDevices(@RequestHeader("Authorization") String accessToken) {
 		Long userId = jwtTokenProvider.getUserIdFromToken(accessToken);
 		authService.logoutAllDevices(userId);
-		return ResponseEntity.ok(Map.of("message", "Logged out from all devices"));
+		return ResponseEntity.ok(Map.of("message", SuccessMessages.USER_LOGGED_OUT_ALL));
 	}
 
 	@PostMapping("/refresh")
@@ -62,9 +62,9 @@ public class UserController {
 		return ResponseEntity.status(200).body(response);
 	}
 
-	@PostMapping("/request-password-reset")
-	public ResponseEntity<Map<String, String>> requestPasswordReset(@Valid @RequestBody UserPasswordResetRequest request) {
-		passwordService.requestPasswordReset(request);
+	@PostMapping("/reset-password-request")
+	public ResponseEntity<Map<String, String>> resetPasswordRequest(@Valid @RequestBody UserPasswordResetRequest request) {
+		passwordService.resetPasswordRequest(request);
 		Map<String, String> response = Map.of("message", SuccessMessages.PASSWORD_RESET_REQUEST);
 		return ResponseEntity.status(200).body(response);
 	}
@@ -111,9 +111,7 @@ public class UserController {
 	}
 
 	@DeleteMapping("/me")
-	public ResponseEntity<Map<String, String>> deleteUser(
-			@AuthenticationPrincipal Long userId,
-			@RequestHeader("Authorization") String token) {
+	public ResponseEntity<Map<String, String>> deleteUser(@AuthenticationPrincipal Long userId) {
 
 		// 계정 비활성화
 		userService.deactivateUser(userId);
@@ -126,7 +124,6 @@ public class UserController {
 	@PutMapping("/me/password")
 	public ResponseEntity<Map<String, String>> updatePassword(
 			@AuthenticationPrincipal Long userId,
-			@RequestHeader("Authorization") String token,
 			@Valid @RequestBody UserPasswordUpdateRequest request) {
 		passwordService.updatePassword(userId, request); // 비밀번호 업데이트
 

@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/oauth2/**").permitAll()  // OAuth2 인증 요청 허용
                         .requestMatchers("/users/register", "/users/login", "/oauth/**").permitAll() // 인증 없이 허용할 경로
+                        .requestMatchers("/users/refresh", "/users/reset-**").permitAll() // 인증 없이 허용할 경로
                         .anyRequest().authenticated()  // 그 외의 모든 요청은 인증 필요
                 )
                 .oauth2Login(oauth2 -> oauth2

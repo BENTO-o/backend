@@ -46,7 +46,7 @@ public class PasswordService {
         userRepository.save(user);
     }
 
-    public void requestPasswordReset(@Valid UserPasswordResetRequest request) {
+    public void resetPasswordRequest(@Valid UserPasswordResetRequest request) {
         String email = request.getEmail();
         User user = userService.findByEmail(email);
         if (user == null) {
