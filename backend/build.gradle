@@ -26,6 +26,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 	implementation 'org.projectlombok:lombok'
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	implementation group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 처리용 (필요할 경우)
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -37,4 +38,8 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+	options.compilerArgs += ["-Xlint:deprecation", "-Xlint:unchecked"]
 }

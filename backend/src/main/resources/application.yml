@@ -16,13 +16,13 @@ spring:
           naver:
             client-id: ${NAVER_CLIENT_ID}
             client-secret: ${NAVER_CLIENT_SECRET}
-            redirect-uri: http://221.146.234.20/login/oauth2/code/naver
+            redirect-uri: ${NAVER_REDIRECT_URI}
             client-name: Naver
             scope:
               - username
               - email
               - profile_image
-            authorization-grant-type: authorization_code  # <-- Add this line
+            authorization-grant-type: authorization_code
         provider:
           naver:
             authorization-uri: https://nid.naver.com/oauth2.0/authorize
@@ -41,10 +41,21 @@ spring:
           starttls:
             enable: true
     protocol: smtp
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
   access-expiration-time: ${JWT_ACCESS_EXPIRATION_TIME}
   refresh-expiration-time: ${JWT_REFRESH_EXPIRATION_TIME}
 
-allowed-origin: ${ALLOWED_ORIGIN}
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH}
+
+logging:
+  file:
+    name: logs/application.log  # 로그 파일 경로
+
