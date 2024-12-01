@@ -63,7 +63,7 @@ public class NoteController {
 
 	// 유저의 폴더 목록 조회
 	@GetMapping("/folders")
-	public ResponseEntity<List<FolderResponse>> getFolders(@AuthenticationPrincipal Long userId, @RequestHeader("Authorization") String token) {
+	public ResponseEntity<List<FolderResponse>> getFolders(@AuthenticationPrincipal Long userId) {
 		User user = userService.getUserById(userId);
 		return ResponseEntity.status(200).body(noteService.getFolders(user));
 	}
