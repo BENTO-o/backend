@@ -11,9 +11,11 @@ import bento.backend.exception.ForbiddenException;
 import bento.backend.service.auth.AuthService;
 import bento.backend.service.memo.MemoService;
 import bento.backend.service.note.NoteService;
+import bento.backend.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,11 +27,10 @@ import java.util.Map;
 public class MemoController {
     private final MemoService memoService;
     private final NoteService noteService;
-    private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> createMemo(@RequestHeader("Authorization") String token, @Valid @RequestBody MemoCreateRequest request) throws Exception {
-        User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+    public ResponseEntity<Map<String, String>> createMemo(@Valid @RequestBody MemoCreateRequest request) throws Exception {
 //        if (!noteService.isNoteOwner(user, request.getNoteId())) {
 //            throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
 //        }
@@ -39,10 +40,9 @@ public class MemoController {
     }
 
     @GetMapping("/note/{noteId}")
-    public ResponseEntity<List<MemoResponse>> getMemosByNoteId(@RequestHeader("Authorization") String token, @PathVariable Long noteId) {
-        User user = authService.getUserFromToken((token.replace("Bearer ", "")));
+    public ResponseEntity<List<MemoResponse>> getMemosByNoteId(@AuthenticationPrincipal Long userId, @PathVariable Long noteId) {
         Note note = noteService.getNoteById(noteId);
-        if (!note.getUser().getUserId().equals(user.getUserId())) {
+        if (!note.getUser().getUserId().equals(userId)) {
             throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
         }
         List<MemoResponse> response = memoService.getMemosByNoteId(noteId);
@@ -50,8 +50,8 @@ public class MemoController {
     }
 
     @PatchMapping("/{memoId}")
-    public ResponseEntity<Map<String, String>> updateMemo(@RequestHeader("Authorization") String token, @PathVariable Long memoId, @Valid @RequestBody MemoCreateRequest request) {
-        User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+    public ResponseEntity<Map<String, String>> updateMemo(@AuthenticationPrincipal Long userId, @PathVariable Long memoId, @Valid @RequestBody MemoCreateRequest request) {
+        User user = userService.getUserById(userId);
         if (!memoService.isMemoOwner(user, memoId)) {
             throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
         }
@@ -61,8 +61,8 @@ public class MemoController {
     }
 
     @DeleteMapping("/{memoId}")
-    public ResponseEntity<Map<String, String>> deleteMemo(@RequestHeader("Authorization") String token, @PathVariable Long memoId) {
-        User user = authService.getUserFromToken(token.replace("Bearer ", ""));
+    public ResponseEntity<Map<String, String>> deleteMemo(@AuthenticationPrincipal Long userId, @PathVariable Long memoId) {
+        User user = userService.getUserById(userId);
         if (!memoService.isMemoOwner(user, memoId)) {
             throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ERROR);
         }
