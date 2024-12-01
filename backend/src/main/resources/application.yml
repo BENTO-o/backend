@@ -60,3 +60,5 @@ logging:
   file:
     name: logs/application.log  # 로그 파일 경로
 
+
+AI_SERVER_URL: ${AI_SERVER_URL}
