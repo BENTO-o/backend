@@ -11,10 +11,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 @Entity
 @Getter
@@ -46,15 +44,6 @@ public class User implements UserDetails {
 	@Column(name = "oauth_provider_id", unique = true)
 	private String oauthProviderId; // 로그인 한 유저의 고유 ID
 
-	@OneToMany(mappedBy = "user")
-	private List<Audio> audios = new ArrayList<>();
-
-	@OneToMany(mappedBy = "user")
-	private List<Note> notes = new ArrayList<>();
-
-	@OneToMany(mappedBy = "user")
-	private List<Folder> folders = new ArrayList<>();
-
 	@Enumerated(EnumType.STRING)
 	@Column(name = "role", nullable = false)
 	private Role role;
@@ -69,8 +58,6 @@ public class User implements UserDetails {
 		this.password = password;
 		this.email = email;
 		this.role = (role != null) ? role : Role.ROLE_USER;
-		this.audios = new ArrayList<>();
-		this.notes = new ArrayList<>();
 	}
 
 	@Builder
@@ -80,8 +67,6 @@ public class User implements UserDetails {
 		this.oauthProvider = oauthProvider;
 		this.oauthProviderId = oauthProviderId;
 		this.role = (role != null) ? role : Role.ROLE_USER;
-		this.audios = new ArrayList<>();
-		this.notes = new ArrayList<>();
 	}
 
 	@Override

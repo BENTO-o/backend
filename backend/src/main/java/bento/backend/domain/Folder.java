@@ -1,10 +1,8 @@
 package bento.backend.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import java.util.List;
-import java.util.ArrayList;
 
 @Entity
 @Getter
@@ -26,5 +24,5 @@ public class Folder {
 	private User user;
 
 	@OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<Note> notes = new ArrayList<>();
+	private List<Note> notes;
 }

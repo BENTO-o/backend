@@ -69,7 +69,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     public UserLoginResponse login(CustomOAuth2User customOAuth2User) {
         User user = customOAuth2User.getUser();
-        String token = jwtTokenProvider.generateToken(user.getUserId(), String.valueOf(user.getRole()));
-        return UserLoginResponse.of(token, jwtTokenProvider.getExpirationTime());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUserId(), String.valueOf(user.getRole()));
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserId());
+        return UserLoginResponse.of(accessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationTime());
     }
 }

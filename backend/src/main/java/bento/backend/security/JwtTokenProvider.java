@@ -2,123 +2,98 @@ package bento.backend.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import jakarta.servlet.http.HttpServletRequest;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
-    private final long expirationTime; // Configure in application.properties (in milliseconds)
+    @Value("${jwt.access-expiration-time}")
+    private long accessExpirationTime;
+    @Value("${jwt.refresh-expiration-time}")
+    private long refreshExpirationTime;
+
     private final SecretKey secretKey;
     private final JwtParser jwtParser;
     private final JwtBuilder jwtBuilder;
 
-    public JwtTokenProvider(@Value("${jwt.secret-key}") String secretKey,
-                            @Value("${jwt.expiration-time}") long expirationTime) {
+    public JwtTokenProvider(@Value("${jwt.secret-key}") String secretKey) {
         this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.jwtParser = Jwts.parserBuilder().setSigningKey(this.secretKey).build();
         this.jwtBuilder = Jwts.builder().signWith(this.secretKey, SignatureAlgorithm.HS512);
-        this.expirationTime = expirationTime;
     }
 
-    // Token generation
-    public String generateToken(Long userId, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role); // Include roles or other claims as necessary
-
+    //    Token generation
+    public String generateAccessToken(Long userId, String role) {
         return jwtBuilder
-                .setClaims(claims)
-                .setSubject(String.valueOf(userId)) // User ID as the subject
+                .setSubject(String.valueOf(userId))
+                .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + accessExpirationTime))
                 .compact();
     }
 
-    public Long getUserIdFromToken(String token) {
-        Claims claims = jwtParser
-                .parseClaimsJws(token)
-                .getBody();
-        return Long.parseLong(claims.getSubject());
-    }
-
-    public String getRoleFromToken(String token) {
-        Claims claims = jwtParser
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.get("role", String.class);
-    }
-
-    public int getExpirationTime() {
-        return (int) expirationTime / 1000;
-    }
-
-    public boolean validateToken(String token) {
-        if (token == null || token.isBlank()) {
-            return false;
-        }
-        try {
-            Claims claims = jwtParser.parseClaimsJws(token).getBody();
-            return !claims.getExpiration().before(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
+    public String generateRefreshToken(Long userId) {
+        return jwtBuilder
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
+                .compact();
     }
 
     public String generateResetToken(String email) {
         return jwtBuilder
-                .setSubject(email) // 해시된 이메일 사용
+                .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 600000))
-                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .setExpiration(new Date(System.currentTimeMillis() + 300000)) // 5 minutes
                 .compact();
     }
 
-    public boolean validateResetToken(String token) {
+    public boolean validateToken(String token) {
         try {
-            jwtParser.parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
+            Claims claims = jwtParser.parseClaimsJws(token).getBody();
+            return !claims.getExpiration().before(new Date(System.currentTimeMillis()));
+        } catch (ExpiredJwtException e) {
+            log.warn("Token expired: {}", e.getMessage());
+            return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid token: {}", e.getMessage());
             return false;
         }
     }
 
-    public String getEmailFromResetToken(String token) {
+    public String getSubjectFromToken(String token) {
         return jwtParser.parseClaimsJws(token).getBody().getSubject();
     }
 
-
-    public String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
+    public Long getUserIdFromToken(String token) {
+        return Long.parseLong(getSubjectFromToken(token)); // Convert to Long
     }
 
-    public Authentication getAuthentication(String token) {
-        Claims claims = jwtParser
-                .parseClaimsJws(token)
-                .getBody();
+    public String getClaimeFromToken(String token, String key) {
+        return jwtParser.parseClaimsJws(token).getBody().get(key, String.class);
+    }
 
-        Long userId = Long.parseLong(claims.getSubject()); // Extract User ID
-        String role = claims.get("role", String.class);    // Extract role
+    public int getAccessTokenExpirationTime() {
+        return (int) accessExpirationTime / 1000; // Convert to seconds
+    }
 
-        // Create an Authentication object with authorities
-        return new UsernamePasswordAuthenticationToken(
-                userId,
-                null,
-                Collections.singletonList(new SimpleGrantedAuthority(role))
-        );
+    public Collection<? extends GrantedAuthority> getAuthorities(String token) {
+        String role = getClaimeFromToken(token, "role");
+        return Collections.singletonList(new SimpleGrantedAuthority(role));
+    }
+
+    public long getRefreshTokenExpirationTime() {
+        return refreshExpirationTime;
     }
 }
