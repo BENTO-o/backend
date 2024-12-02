@@ -53,4 +53,8 @@ public class Audio {
        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
        return dateTime.format(formatter);
    }
+
+   public void updateDuration(String duration) {
+       this.duration = duration;
+   }
 }
