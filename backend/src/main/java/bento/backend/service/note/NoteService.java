@@ -68,8 +68,10 @@ public class NoteService {
                 .user(user)
                 .build();
 
-		String responseJson = callAIServer();
+        audioRepository.save(audio);
 
+        // AI 서버로 요청 보내기
+		String responseJson = getScriptFromAI(filePath);
         Map<String, Object> responseMap = convertJsonToMap(responseJson);
 
         // 응답값 바탕으로 duration 설정
@@ -133,14 +135,15 @@ public class NoteService {
     }
 
     // AI 서버로 요청 보내기
-	private String callAIServer() {
-		String uri = "/get-json"; // STT 요청 URI
+	private String getScriptFromAI(String filePath) {
+		String uri = "/scripts"; // STT 요청 URI
 
-        String responseBody = webClient.get()
+        String responseBody = webClient.post()
             .uri(uri)
+            .body(Mono.just(Map.of("filePath", filePath)), Map.class)
             .retrieve()
             .bodyToMono(String.class)
-            .block();
+            .block(); // TODO : 비동기 처리로 변경
 
         return decodeUnicodeResponse(responseBody);
 	}
