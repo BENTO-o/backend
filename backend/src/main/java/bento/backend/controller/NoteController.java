@@ -1,14 +1,10 @@
 package bento.backend.controller;
 
+import bento.backend.dto.response.*;
 import bento.backend.service.note.NoteService;
 import bento.backend.service.file.FileService;
 import bento.backend.domain.User;
 import bento.backend.domain.Folder;
-import bento.backend.dto.response.NoteListResponse;
-import bento.backend.dto.response.NoteDetailResponse;
-import bento.backend.dto.response.MessageResponse;
-import bento.backend.dto.response.FolderResponse;
-import bento.backend.dto.response.NoteSummaryResponse;
 import bento.backend.dto.request.NoteCreateRequest;
 import bento.backend.dto.request.NoteUpdateRequest;
 
@@ -52,6 +48,19 @@ public class NoteController {
 	public ResponseEntity<List<NoteListResponse>> getNote(@AuthenticationPrincipal Long userId) {
 		User user = userService.getUserById(userId);
 		return ResponseEntity.status(200).body(noteService.getNoteList(user));
+	}
+
+	// 노트 검색
+	@GetMapping("/search")
+	public ResponseEntity<List<NoteSearchResponse>> searchNotes(
+			@AuthenticationPrincipal Long userId,
+			@RequestParam(required = false) String query,
+			@RequestParam(required = false) String startDate,
+			@RequestParam(required = false) String endDate
+	) {
+		User user = userService.getUserById(userId);
+		List<NoteSearchResponse> results = noteService.searchNotes(user, query, startDate, endDate);
+		return ResponseEntity.status(200).body(results);
 	}
 
 	// 노트 목록 조회 (폴더별)

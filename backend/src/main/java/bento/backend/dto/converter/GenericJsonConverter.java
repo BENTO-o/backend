@@ -8,6 +8,7 @@ import jakarta.persistence.Converter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Converter
 public class GenericJsonConverter implements AttributeConverter<List<String>, String> {
@@ -34,6 +35,23 @@ public class GenericJsonConverter implements AttributeConverter<List<String>, St
             return objectMapper.readValue(dbData, new TypeReference<>() {});
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error converting JSON to List<String>", e);
+        }
+    }
+
+    /**
+     * JSON String 을 Map<String, Object> 로 변환합니다.
+     *
+     * @param json The JSON String.
+     * @return Parsed Map<String, Object>.
+     */
+    public Map<String, Object> convertJsonToMap(String json) {
+        if (json == null || json.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error converting JSON to Map<String, Object>", e);
         }
     }
 }
