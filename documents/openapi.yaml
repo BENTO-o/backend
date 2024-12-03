@@ -810,16 +810,6 @@ paths:
                   message:
                     type: string
                     example: "The provided token is invalid. Please check and provide a valid token."
-        404:
-          description: No notes found matching the criteria.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "No notes found for the specified criteria."
   /notes/{noteId}:
     get:
       tags:
