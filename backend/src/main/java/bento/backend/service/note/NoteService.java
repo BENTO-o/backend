@@ -2,17 +2,14 @@ package bento.backend.service.note;
 
 import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.*;
+import bento.backend.dto.converter.GenericJsonConverter;
 import bento.backend.dto.request.BookmarkCreateRequest;
 import bento.backend.dto.request.MemoCreateRequest;
+import bento.backend.dto.response.*;
 import bento.backend.repository.NoteRepository;
 import bento.backend.repository.AudioRepository;
 import bento.backend.repository.SummaryRepository;
 import bento.backend.repository.FolderRepository;
-import bento.backend.dto.response.NoteListResponse;
-import bento.backend.dto.response.NoteDetailResponse;
-import bento.backend.dto.response.NoteSummaryResponse;
-import bento.backend.dto.response.MessageResponse;
-import bento.backend.dto.response.FolderResponse;
 import bento.backend.dto.request.NoteCreateRequest;
 import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
@@ -25,6 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
@@ -312,4 +312,95 @@ public class NoteService {
         return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
     }
 
+    public List<NoteSearchResponse> searchNotes(User user, String query, String startDate, String endDate) {
+        if (startDate != null && endDate != null) {
+            List<Note> notes = getNotesByDateRange(user, startDate, endDate);
+
+            return notes.stream()
+                    .map(note -> NoteSearchResponse.builder()
+                            .noteId(note.getNoteId())
+                            .title(note.getTitle())
+                            .folder(note.getFolder() != null ? note.getFolder().getFolderName() : null)
+                            .createdAt(note.getFormattedDateTime(note.getCreatedAt()))
+                            .matches(List.of()) // 날짜 검색에서는 matches를 빈 리스트로 반환
+                            .build())
+                    .toList();
+        }
+
+        if (query == null || query.trim().isEmpty()) {
+            throw new ValidationException(ErrorMessages.EMPTY_QUERY);
+        }
+
+        List<Note> notes = noteRepository.findByQueryAndUser(query, user);
+
+        return notes.stream()
+                .map(note -> {
+                    List<NoteContentMatch> matches = findMatches(note.getContent(), query);
+
+                    return matches.isEmpty() ? null : NoteSearchResponse.builder()
+                            .noteId(note.getNoteId())
+                            .title(note.getTitle())
+                            .folder(note.getFolder() != null ? note.getFolder().getFolderName() : null)
+                            .createdAt(note.getFormattedDateTime(note.getCreatedAt()))
+                            .matches(matches) // matches는 ContentMatch 리스트
+                            .build();
+                })
+                .filter(Objects::nonNull) // matches가 없는 노트는 제외
+                .toList();
+    }
+
+
+    public List<Note> getNotesByDateRange(User user, String startDate, String endDate) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+            // LocalDate로 파싱
+            LocalDate startLocalDate = LocalDate.parse(startDate, formatter);
+            LocalDate endLocalDate = LocalDate.parse(endDate, formatter);
+            // LocalDate를 LocalDateTime으로 변환
+            LocalDateTime start = startLocalDate.atStartOfDay(); // 하루 시작 시간 (00:00:00)
+            LocalDateTime end = endLocalDate.atTime(23, 59, 59); // 하루 끝 시간 (23:59:59)
+
+            return noteRepository.findByCreatedAtBetweenAndUser(start, end, user);
+        } catch (DateTimeParseException e) {
+            throw new ValidationException(ErrorMessages.INVALID_DATE_FORMAT);
+        }
+    }
+
+    public List<NoteContentMatch> findMatches(String content, String query) {
+        if (content == null || content.isEmpty() || query == null || query.isEmpty()) {
+            return List.of();
+        }
+
+        GenericJsonConverter converter = new GenericJsonConverter();
+
+        try {
+            // JSON 문자열을 Map<String, Object>로 변환
+            Map<String, Object> jsonData = converter.convertJsonToMap(content);
+
+            List<NoteContentMatch> matches = new ArrayList<>();
+
+            // "script" 배열에서 "text" 검색
+            if (jsonData.containsKey("script")) {
+                List<Map<String, Object>> scripts = (List<Map<String, Object>>) jsonData.get("script");
+
+                for (Map<String, Object> script : scripts) {
+                    if (script.containsKey("text")) {
+                        String text = (String) script.get("text");
+                        if (text.toLowerCase().contains(query.toLowerCase())) {
+                            matches.add(NoteContentMatch.builder()
+                                    .text(text)
+                                    .timestamp((String) script.get("timestamp"))
+                                    .build());
+                        }
+                    }
+                }
+            }
+
+            return matches;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing JSON content", e);
+        }
+    }
 }

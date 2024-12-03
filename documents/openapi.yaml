@@ -722,6 +722,104 @@ paths:
                 example:
                   title: "Title is mandatory"
                   folder: "Folder is mandatory"
+  /notes/search:
+    get:
+      tags:
+        - Notes
+      summary: Search notes
+      description: Searches notes in the system based on the provided query, date range, or other criteria.
+      operationId: searchNotes
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Text to search for within the notes' content or title.
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-01"
+          description: Start date of the search range in `yyyy-MM-dd` format.
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-03"
+          description: End date of the search range in `yyyy-MM-dd` format.
+      responses:
+        200:
+          description: A list of notes matching the search criteria.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    noteId:
+                      type: integer
+                      example: 1
+                    title:
+                      type: string
+                      example: "My first note"
+                    folder:
+                      type: string
+                      example: "deep learning"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      example: "2024-12-03 03:19:32"
+                    duration:
+                      type: string
+                      example: "01:00:00"
+                    matches:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          text:
+                            type: string
+                            example: "Example matching text"
+                          timestamp:
+                            type: string
+                            format: time
+                            example: "00:00:41"
+        400:
+          description: Bad Request - Invalid parameters or date formats.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "The provided date format is invalid. Please provide a valid date in the format yyyy-MM-dd."
+        401:
+          description: Unauthorized - Invalid authentication token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "The provided token is invalid. Please check and provide a valid token."
+        404:
+          description: No notes found matching the criteria.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No notes found for the specified criteria."
   /notes/{noteId}:
     get:
       tags:
