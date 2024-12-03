@@ -140,7 +140,7 @@ public class NoteService {
 
         String responseBody = webClient.post()
             .uri(uri)
-            .body(Mono.just(Map.of("filePath", filePath)), Map.class)
+            .body(Mono.just(Map.of("filePa/th", filePath)), Map.class)
             .retrieve()
             .bodyToMono(String.class)
             .block(); // TODO : 비동기 처리로 변경
