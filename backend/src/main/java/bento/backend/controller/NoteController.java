@@ -44,7 +44,8 @@ public class NoteController {
 	) {
 		User user = userService.getUserById(userId);
 		String filePath = fileService.uploadFile(request.getFile());
-		return ResponseEntity.status(201).body(noteService.createNote(user, filePath, request));
+
+		return ResponseEntity.status(201).body(noteService.createNote(user, request.getFile(), filePath, request));
 	}
 
 	// 노트 목록 조회

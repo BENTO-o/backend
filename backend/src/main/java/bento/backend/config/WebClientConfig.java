@@ -22,6 +22,8 @@ public class WebClientConfig {
 
 	HttpClient httpClient() {
 		return HttpClient.create()
+			.option(ChannelOption.SO_KEEPALIVE, true)
+			.option(ChannelOption.TCP_NODELAY, true)
 			.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
 			.responseTimeout(Duration.ofMillis(5000))
 			.doOnConnected(conn -> conn.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS))
@@ -32,7 +34,7 @@ public class WebClientConfig {
 	public WebClient webClient() {
 		return WebClient.builder()
 			.baseUrl(aiServerUrl)
-			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
 			.clientConnector(new ReactorClientHttpConnector(httpClient()))
 			.build();
 	}

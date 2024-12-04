@@ -17,6 +17,7 @@ import bento.backend.dto.request.NoteCreateRequest;
 import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.ValidationException;
+import bento.backend.utils.MultipartFileResource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -32,12 +33,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.multipart.MultipartFile;
 import org.json.simple.JSONObject;
 import reactor.core.publisher.Mono;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.core.io.ByteArrayResource;
+
+
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.LinkedMultiValueMap;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +61,7 @@ public class NoteService {
 	private final WebClient webClient;
 
 	// 노트 생성
-	public MessageResponse createNote(User user, String filePath, NoteCreateRequest request) {
+	public MessageResponse createNote(User user, MultipartFile file, String filePath, NoteCreateRequest request) {
         String language = "enko"; // default language
 
 		if (request.getFolder() == null) {
@@ -71,7 +82,7 @@ public class NoteService {
         audioRepository.save(audio);
 
         // AI 서버로 요청 보내기
-		String responseJson = getScriptFromAI(filePath);
+		String responseJson = getScriptFromAI(file, language, request.getTopics());
         Map<String, Object> responseMap = convertJsonToMap(responseJson);
 
         // 응답값 바탕으로 duration 설정
@@ -79,7 +90,7 @@ public class NoteService {
         audioRepository.save(audio);
 
 		Map<String, Object> contentMap = (Map<String, Object>) responseMap.get("content");
-        String jsonContent = convertMapToJsonString(contentMap);
+        String jsonContent = convertObjectToJsonString(contentMap);
 
 		// Note 객체 생성
 		Note note = Note.builder()
@@ -135,17 +146,34 @@ public class NoteService {
     }
 
     // AI 서버로 요청 보내기
-	private String getScriptFromAI(String filePath) {
+	private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
 		String uri = "/scripts"; // STT 요청 URI
 
-        String responseBody = webClient.post()
-            .uri(uri)
-            .body(Mono.just(Map.of("filePath", filePath)), Map.class)
-            .retrieve()
-            .bodyToMono(String.class)
-            .block(); // TODO : 비동기 처리로 변경
+        try {
+            // Multipart 데이터를 MultiValueMap에 설정
+            MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
+            bodyMap.add("file", new ByteArrayResource(file.getBytes()) {
+                public String getFilename() {
+                    return file.getOriginalFilename();
+                }
+            });
+            bodyMap.add("language", language);
+            bodyMap.add("topics", topicsJson);
 
-        return decodeUnicodeResponse(responseBody);
+            // WebClient를 사용하여 파일 전송
+            String responseBody = webClient.post()
+                .uri(uri)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyMap))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block(); // TODO : 비동기 처리로 변환
+
+            return responseBody;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading file input stream", e);
+        }
 	}
 
     // 유니코드 응답 디코딩
@@ -170,12 +198,12 @@ public class NoteService {
         }
     }
 
-    // Map to JSON String 변환
-    private String convertMapToJsonString(Map<String, Object> map) {
+    // Object to JSON String 변환
+    private String convertObjectToJsonString(Object object) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             // 맵 데이터를 JSON 문자열로 직렬화
-            return objectMapper.writeValueAsString(map);
+            return objectMapper.writeValueAsString(object);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to convert Map to JSON string");
@@ -363,3 +391,4 @@ public class NoteService {
     }
 
 }
+
