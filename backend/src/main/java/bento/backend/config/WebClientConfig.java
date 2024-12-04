@@ -24,10 +24,10 @@ public class WebClientConfig {
 		return HttpClient.create()
 			.option(ChannelOption.SO_KEEPALIVE, true)
 			.option(ChannelOption.TCP_NODELAY, true)
-			.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-			.responseTimeout(Duration.ofMillis(5000))
-			.doOnConnected(conn -> conn.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS))
-				.addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS)));
+			.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 500000)
+			.responseTimeout(Duration.ofMillis(500000))
+			.doOnConnected(conn -> conn.addHandlerLast(new ReadTimeoutHandler(500000, TimeUnit.MILLISECONDS))
+				.addHandlerLast(new WriteTimeoutHandler(500000, TimeUnit.MILLISECONDS)));
 	}
 
 	@Bean
