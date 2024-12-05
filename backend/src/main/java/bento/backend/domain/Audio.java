@@ -57,4 +57,6 @@ public class Audio {
    public void updateDuration(String duration) {
        this.duration = duration;
    }
+
+    public void updateStatus(AudioStatus status) { this.status = status; }
 }

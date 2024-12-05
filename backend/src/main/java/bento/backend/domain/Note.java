@@ -44,6 +44,10 @@ public class Note {
 	@Column(name = "updated_at", nullable = false)
 	private LocalDateTime updatedAt;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false)
+	private NoteStatus status;
+
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "audio_id", nullable = false)
 	private Audio audio;
@@ -78,5 +82,17 @@ public class Note {
 
 	public void updateFolder(Folder folder) {
 		this.folder = folder;
+	}
+
+	public void updateContent(String content) {
+		this.content = content;
+	}
+
+	public void updateTopics(List<String> topics) {
+		this.topics = topics;
+	}
+
+	public void updateStatus(NoteStatus status) {
+		this.status = status;
 	}
 }

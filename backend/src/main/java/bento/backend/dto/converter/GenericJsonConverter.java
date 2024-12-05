@@ -6,52 +6,37 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 @Converter
-public class GenericJsonConverter implements AttributeConverter<List<String>, String> {
+public class GenericJsonConverter<T> implements AttributeConverter<T, String> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final TypeReference<T> typeReference;
+
+    public GenericJsonConverter(TypeReference<T> typeReference) {
+        this.typeReference = typeReference;
+    }
+
     @Override
-    public String convertToDatabaseColumn(List<String> attribute) {
+    public String convertToDatabaseColumn(T attribute) {
         if (attribute == null) {
             return null;
         }
         try {
             return objectMapper.writeValueAsString(attribute);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error converting List<String> to JSON", e);
+            throw new RuntimeException("Error converting object to JSON", e);
         }
     }
 
     @Override
-    public List<String> convertToEntityAttribute(String dbData) {
+    public T convertToEntityAttribute(String dbData) {
         if (dbData == null || dbData.isEmpty()) {
-            return new ArrayList<>();
+            return null;
         }
         try {
-            return objectMapper.readValue(dbData, new TypeReference<>() {});
+            return objectMapper.readValue(dbData, typeReference);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error converting JSON to List<String>", e);
-        }
-    }
-
-    /**
-     * JSON String 을 Map<String, Object> 로 변환합니다.
-     *
-     * @param json The JSON String.
-     * @return Parsed Map<String, Object>.
-     */
-    public Map<String, Object> convertJsonToMap(String json) {
-        if (json == null || json.isEmpty()) {
-            return Map.of();
-        }
-        try {
-            return objectMapper.readValue(json, new TypeReference<>() {});
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error converting JSON to Map<String, Object>", e);
+            throw new RuntimeException("Error converting JSON to object", e);
         }
     }
 }
