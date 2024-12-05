@@ -88,10 +88,6 @@ public class Note {
 		this.content = content;
 	}
 
-	public void updateTopics(List<String> topics) {
-		this.topics = topics;
-	}
-
 	public void updateStatus(NoteStatus status) {
 		this.status = status;
 	}

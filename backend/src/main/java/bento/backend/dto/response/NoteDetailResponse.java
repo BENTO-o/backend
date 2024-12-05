@@ -1,13 +1,10 @@
 package bento.backend.dto.response;
 
-import bento.backend.constant.SuccessMessages;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 
 @Getter
