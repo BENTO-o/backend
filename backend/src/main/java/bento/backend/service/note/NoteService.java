@@ -147,6 +147,10 @@ public class NoteService {
 	private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
 		String uri = "/scripts"; // STT 요청 URI
 
+        if (topicsJson == null) {
+            topicsJson = "[]";
+        }
+
         try {
             // Multipart 데이터를 MultiValueMap에 설정
             MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
