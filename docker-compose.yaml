@@ -8,7 +8,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     networks:
-      - bento-network
+      - dev-network
     depends_on:
       db:
         condition: service_healthy
@@ -36,10 +36,10 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
-      - bento-network
+      - dev-network
 volumes:
   mysql-data:
     name: bento-mysql
 networks:
-  bento-network:
+  dev-network:
     external: true # 외부 네트워크 사용
