@@ -17,7 +17,6 @@ import bento.backend.dto.request.NoteCreateRequest;
 import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.ValidationException;
-import bento.backend.utils.MultipartFileResource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
