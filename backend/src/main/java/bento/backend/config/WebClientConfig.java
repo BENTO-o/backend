@@ -34,7 +34,6 @@ public class WebClientConfig {
 	public WebClient webClient() {
 		return WebClient.builder()
 			.baseUrl(aiServerUrl)
-			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
 			.clientConnector(new ReactorClientHttpConnector(httpClient()))
 			.build();
 	}

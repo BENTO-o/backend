@@ -41,7 +41,6 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.core.io.ByteArrayResource;
 
-
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.LinkedMultiValueMap;
 
@@ -83,7 +82,7 @@ public class NoteService {
 
         // AI 서버로 요청 보내기
 		String responseJson = getScriptFromAI(file, language, request.getTopics());
-        Map<String, Object> responseMap = convertJsonToMap(responseJson);
+        Map<String, Object> responseMap = convertJsonStringToMap(responseJson);
 
         // 응답값 바탕으로 duration 설정
         audio.updateDuration(responseMap.get("duration").toString());
@@ -163,6 +162,7 @@ public class NoteService {
             // WebClient를 사용하여 파일 전송
             String responseBody = webClient.post()
                 .uri(uri)
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(bodyMap))
                 .retrieve()
@@ -189,7 +189,7 @@ public class NoteService {
     }
 
     // JSON String to Map 변환
-    private Map<String, Object> convertJsonToMap(String responseBody) {
+    private Map<String, Object> convertJsonStringToMap(String responseBody) {
         try {
             return objectMapper.readValue(responseBody, new TypeReference<>() {});
         } catch (JsonProcessingException e) {
@@ -369,10 +369,11 @@ public class NoteService {
         Summary summary = note.getSummary();
 
         if (summary == null) {
-            // TODO : AI 요약 API 호출
-            // dummy data
+            String summaryJson = getSummaryFromAI(note);
+            Map<String, Object> summaryMap = convertJsonStringToMap(summaryJson);
+
             summary = Summary.builder()
-                    .content("dummy summary")
+                    .content(summaryMap.get("summary").toString())
                     .summaryDate(LocalDateTime.now())
                     .note(note)
                     .build();
@@ -384,7 +385,36 @@ public class NoteService {
                 .summary(summary.getContent())
                 .build();
     }
+	
+	// AI 요약 요청 보내기
+	private String getSummaryFromAI(Note note) {
+		String uri = "/summarys"; // 요약 요청 URI
 
+		try {
+            // Note 객체에서 content와 topics 필드만 추출하여 Map 생성
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("content", note.getContent());
+            requestBody.put("topics", note.getTopics());
+
+			// WebClient를 사용하여 파일 전송
+			String responseBody = webClient.post()
+				.uri(uri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(requestBody)) // JSON 형식으로 Map을 직접 바디에 추가
+				.retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorMessage -> {
+                            throw new RuntimeException("Error from AI Server: " + errorMessage);
+                        }))
+				.bodyToMono(String.class)
+				.block(); // TODO : 비동기 처리로 변환
+
+			return responseBody;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send summary request", e);
+        }
+    }
     public boolean isNoteOwner(User user, Long noteId) {
         Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
         return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
