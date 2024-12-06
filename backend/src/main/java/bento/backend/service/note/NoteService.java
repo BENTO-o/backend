@@ -21,7 +21,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.core.io.ByteArrayResource;
+
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.LinkedMultiValueMap;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +39,8 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
+
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -44,11 +53,13 @@ public class NoteService {
     private final WebClient webClient;
     private final ExecutorService executorService = Executors.newFixedThreadPool(10); // 비동기 처리를 위한 스레드 풀
 
-    // 노트 생성
-    public MessageResponse createNote(User user, String filePath, NoteCreateRequest request) {
-        if (request.getFolder() == null) {
-            request.setFolder("default");
-        }
+	// 노트 생성
+	public MessageResponse createNote(User user, MultipartFile file, String filePath, NoteCreateRequest request) {
+        String language = "enko"; // default language
+
+		if (request.getFolder() == null) {
+			request.setFolder("default");
+		}
 
         Folder folder = folderRepository.findByFolderNameAndUser(request.getFolder(), user)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
@@ -57,7 +68,7 @@ public class NoteService {
                 .filePath(filePath)
                 .duration("00:00:00")
                 .status(AudioStatus.PROCESSING)
-                .language("enko")
+                .language(language)
                 .user(user)
                 .build();
         audioRepository.save(audio);
@@ -108,7 +119,7 @@ public class NoteService {
                     .toList();
             note.getMemos().addAll(memos);
 
-        executorService.submit(() -> processNoteAsync(audio, note));
+        executorService.submit(() -> processNoteAsync(file, audio, note));
 
         noteRepository.save(note);
         return MessageResponse.builder()
@@ -116,12 +127,12 @@ public class NoteService {
                 .build();
     }
 
-    private void processNoteAsync(Audio audio, Note note) {
+    private void processNoteAsync(MultipartFile file, Audio audio, Note note) {
         GenericJsonConverter<Map<String, Object>> converter = new GenericJsonConverter<>(new TypeReference<>() {});
 
         try {
             // AI 서버 호출
-            String responseJson = getScriptFromAI(audio.getFilePath());
+            String responseJson = getScriptFromAI(file, audio.getLanguage(), note.getTopics().toString());
             Map<String, Object> responseMap = converter.convertToEntityAttribute(responseJson);
 
             // Audio 업데이트
@@ -146,18 +157,40 @@ public class NoteService {
     }
 
     // AI 서버로 요청 보내기
-    private String getScriptFromAI(String filePath) {
-        String uri = "/scripts"; // STT 요청 URI
+	private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
+		String uri = "/scripts"; // STT 요청 URI
 
-        String responseBody = webClient.post()
+        if (topicsJson == null) {
+            topicsJson = "[]";
+        }
+
+        try {
+            // Multipart 데이터를 MultiValueMap에 설정
+            MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
+            bodyMap.add("file", new ByteArrayResource(file.getBytes()) {
+                public String getFilename() {
+                    return file.getOriginalFilename();
+                }
+            });
+            bodyMap.add("language", language);
+            bodyMap.add("topics", topicsJson);
+
+            // WebClient를 사용하여 파일 전송
+            String responseBody = webClient.post()
                 .uri(uri)
-                .body(Mono.just(Map.of("filePath", filePath)), Map.class)
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyMap))
                 .retrieve()
                 .bodyToMono(String.class)
-                .block(); // TODO : 비동기 처리로 변경
+                .block(); // TODO : 비동기 처리로 변환
 
-        return decodeUnicodeResponse(responseBody);
-    }
+            return responseBody;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading file input stream", e);
+        }
+	}
 
     // 유니코드 응답 디코딩
     private String decodeUnicodeResponse(String responseBody) {
@@ -369,10 +402,12 @@ public class NoteService {
         Summary summary = note.getSummary();
 
         if (summary == null) {
-            // TODO : AI 요약 API 호출
-            // dummy data
+            String summaryJson = getSummaryFromAI(note);
+            GenericJsonConverter<Map<String, Object>> converter = new GenericJsonConverter<>(new TypeReference<>() {});
+            Map<String, Object> summaryMap = converter.convertToEntityAttribute(summaryJson);
+
             summary = Summary.builder()
-                    .content("dummy summary")
+                    .content(summaryMap.get("summary").toString())
                     .summaryDate(LocalDateTime.now())
                     .note(note)
                     .build();
@@ -385,10 +420,40 @@ public class NoteService {
                 .build();
     }
 
-    public boolean isNoteOwner(User user, Long noteId) {
-        Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
-        return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
+	// AI 요약 요청 보내기
+	private String getSummaryFromAI(Note note) {
+		String uri = "/summarys"; // 요약 요청 URI
+
+		try {
+            // Note 객체에서 content와 topics 필드만 추출하여 Map 생성
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("content", note.getContent());
+            requestBody.put("topics", note.getTopics());
+
+			// WebClient를 사용하여 파일 전송
+			String responseBody = webClient.post()
+				.uri(uri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(requestBody)) // JSON 형식으로 Map을 직접 바디에 추가
+				.retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorMessage -> {
+                            throw new RuntimeException("Error from AI Server: " + errorMessage);
+                        }))
+				.bodyToMono(String.class)
+				.block(); // TODO : 비동기 처리로 변환
+
+			return responseBody;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send summary request", e);
+        }
     }
+
+//    public boolean isNoteOwner(User user, Long noteId) {
+//        Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
+//        return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
+//    }
 
     public List<NoteSearchResponse> searchNotes(User user, String query, String startDate, String endDate) {
         if (startDate != null && endDate != null) {
