@@ -9,4 +9,5 @@ import lombok.Getter;
 @AllArgsConstructor
 public class MessageResponse {
 	private String message;
+	private Long id;
 }

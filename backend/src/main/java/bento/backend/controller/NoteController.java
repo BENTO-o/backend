@@ -91,6 +91,13 @@ public class NoteController {
 		return ResponseEntity.status(200).body(noteService.getNoteDetail(user, noteId));
 	}
 
+	// 노트 상태 조회
+	@GetMapping("/{noteId}/status")
+	public ResponseEntity<NoteStatusResponse> getNoteStatus(@AuthenticationPrincipal Long userId, @PathVariable Long noteId) {
+		User user = userService.getUserById(userId);
+		return ResponseEntity.status(200).body(noteService.getNoteStatus(user, noteId));
+	}
+
 	// 노트 삭제
 	@DeleteMapping("/{noteId}")
 	public ResponseEntity<MessageResponse> deleteNote(@AuthenticationPrincipal Long userId, @PathVariable Long noteId) {

@@ -2,7 +2,6 @@ package bento.backend.service.note;
 
 import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.*;
-import bento.backend.dto.converter.GenericJsonConverter;
 import bento.backend.dto.converter.StringListJsonConverter;
 import bento.backend.dto.converter.StringObjectMapJsonConverter;
 import bento.backend.dto.request.BookmarkCreateRequest;
@@ -131,6 +130,7 @@ public class NoteService {
         noteRepository.save(note);
         return MessageResponse.builder()
                 .message("Note created successfully")
+                .id(note.getNoteId())
                 .build();
     }
 
@@ -281,13 +281,21 @@ public class NoteService {
 
         return MessageResponse.builder()
                 .message("Folder created successfully")
+                .id(newFolder.getFolderId())
                 .build();
     }
 
     // 노트 상세 조회
     public NoteDetailResponse getNoteDetail(User user, Long noteId) {
         Note note = noteRepository.findByNoteIdAndUser(noteId, user)
-                .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.NOTE_ID_NOT_FOUND_ERROR + noteId));
+
+        if (note.getStatus() == NoteStatus.PROCESSING) {
+            throw new ResourceNotFoundException(ErrorMessages.NOTE_PROCESSING);
+        }
+        else if (note.getStatus() == NoteStatus.FAILED) {
+            throw new ResourceNotFoundException(ErrorMessages.NOTE_FAILED);
+        }
 
         Audio audio = note.getAudio();
         StringObjectMapJsonConverter converter = new StringObjectMapJsonConverter();
@@ -359,10 +367,7 @@ public class NoteService {
     }
 
     private List<Map<String, String>> transformMemos(List<Memo> memos) {
-        return transformList(memos, memo -> Map.of(
-                "timestamp", memo.getTimestamp(),
-                "text", memo.getText()
-        ));
+        return transformList(memos, memo -> Map.of("timestamp", memo.getTimestamp(), "text", memo.getText()));
     }
 
     private List<String> generateAIField() {
@@ -468,6 +473,7 @@ public class NoteService {
 //        return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
 //    }
 
+    // 노트 검색
     public List<NoteSearchResponse> searchNotes(User user, String query, String startDate, String endDate) {
         if (startDate != null && endDate != null) {
             List<Note> notes = getNotesByDateRange(user, startDate, endDate);
@@ -505,7 +511,7 @@ public class NoteService {
                 .toList();
     }
 
-
+    // 날짜 범위로 노트 조회
     public List<Note> getNotesByDateRange(User user, String startDate, String endDate) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -523,6 +529,7 @@ public class NoteService {
         }
     }
 
+    // 노트 내용에서 검색어 찾기
     public List<NoteContentMatch> findMatches(String content, String query) {
         if (content == null || content.isEmpty() || query == null || query.isEmpty()) {
             return List.of();
@@ -561,5 +568,15 @@ public class NoteService {
         } catch (Exception e) {
             throw new RuntimeException("Error parsing JSON content", e);
         }
+    }
+
+    // 노트 상태 조회
+    public NoteStatusResponse getNoteStatus(User user, Long noteId) {
+        Note note = noteRepository.findByNoteIdAndUser(noteId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
+
+        return NoteStatusResponse.builder()
+                .status(note.getStatus().name())
+                .build();
     }
 }
