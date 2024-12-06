@@ -27,4 +27,4 @@ FROM eclipse-temurin:17-jre-focal
 EXPOSE 8080
 VOLUME /tmp
 COPY --from=builder /workdir/server/build/libs/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["java","-Xdebug","-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", "-jar","/app.jar"]

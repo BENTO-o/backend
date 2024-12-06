@@ -21,6 +21,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.multipart.MultipartFile;
+import org.json.simple.JSONObject;
+import reactor.core.publisher.Mono;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.core.io.ByteArrayResource;
+
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.LinkedMultiValueMap;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -28,8 +46,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
-
-import org.json.simple.JSONObject;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -39,23 +56,22 @@ public class NoteService {
     private final SummaryRepository summaryRepository;
     private final FolderRepository folderRepository;
     private final ObjectMapper objectMapper;
+	private final WebClient webClient;
 
-    // 노트 생성
-    public MessageResponse createNote(User user, String filePath, NoteCreateRequest request) {
-        if (request.getFolder() == null) {
-            request.setFolder("default");
-        }
+	// 노트 생성
+	public MessageResponse createNote(User user, MultipartFile file, String filePath, NoteCreateRequest request) {
+        String language = "enko"; // default language
+
+		if (request.getFolder() == null) {
+			request.setFolder("default");
+		}
 
         Folder folder = folderRepository.findByFolderNameAndUser(request.getFolder(), user)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
 
-        // TODO : AI로 API 보내기 (Naver Speech-to-Text API, Prompting)
-        String duration = "01:00:00"; // TODO : STT API로 받아오기
-        String language = "enko";
-
         Audio audio = Audio.builder()
                 .filePath(filePath)
-                .duration(duration)
+                .duration("00:00:00")
                 .status(AudioStatus.PROCESSING)
                 .language(language)
                 .user(user)
@@ -63,30 +79,25 @@ public class NoteService {
 
         audioRepository.save(audio);
 
+        // AI 서버로 요청 보내기
+		String responseJson = getScriptFromAI(file, language, request.getTopics());
+        Map<String, Object> responseMap = convertJsonStringToMap(responseJson);
 
-        // dummy data
-        Map<String, Object> content = new HashMap<>();
+        // 응답값 바탕으로 duration 설정
+        audio.updateDuration(responseMap.get("duration").toString());
+        audioRepository.save(audio);
 
-        List<String> speaker = new ArrayList<>();
-        speaker.add("Speaker 1");
-        speaker.add("Speaker 2");
+		Map<String, Object> contentMap = (Map<String, Object>) responseMap.get("content");
+        String jsonContent = convertObjectToJsonString(contentMap);
 
-        List<Map<String, Object>> script = new ArrayList<>();
-        script.add(Map.of("speaker", "Speaker 1", "text", "Script 1", "timestamp", "00:00:00", "memo", "Memo 1"));
-        script.add(Map.of("speaker", "Speaker 2", "text", "Script 2", "timestamp", "00:01:00", "memo", "Memo 2"));
-
-        content.put("speaker", speaker);
-        content.put("script", script);
-
-        JSONObject jsonContent = new JSONObject(content);
-
-        Note note = Note.builder()
-                .title(request.getTitle())
-                .content(jsonContent.toString()) // TODO: 실제 콘텐츠 설정
-                .folder(folder)
-                .audio(audio)
-                .user(user)
-                .build();
+		// Note 객체 생성
+		Note note = Note.builder()
+			.title(request.getTitle())
+            .content(jsonContent)
+			.folder(folder)
+			.audio(audio)
+			.user(user)
+			.build();
 
         // Add bookmarks and memos if present
         ObjectMapper objectMapper = new ObjectMapper();
@@ -132,7 +143,77 @@ public class NoteService {
                 .build();
     }
 
-    // 노트 조회
+    // AI 서버로 요청 보내기
+	private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
+		String uri = "/scripts"; // STT 요청 URI
+
+        if (topicsJson == null) {
+            topicsJson = "[]";
+        }
+
+        try {
+            // Multipart 데이터를 MultiValueMap에 설정
+            MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
+            bodyMap.add("file", new ByteArrayResource(file.getBytes()) {
+                public String getFilename() {
+                    return file.getOriginalFilename();
+                }
+            });
+            bodyMap.add("language", language);
+            bodyMap.add("topics", topicsJson);
+
+            // WebClient를 사용하여 파일 전송
+            String responseBody = webClient.post()
+                .uri(uri)
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyMap))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block(); // TODO : 비동기 처리로 변환
+
+            return responseBody;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading file input stream", e);
+        }
+	}
+
+    // 유니코드 응답 디코딩
+    private String decodeUnicodeResponse(String responseBody) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            Object json = objectMapper.readValue(responseBody, Object.class);
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to decode Unicode response");
+        }
+    }
+
+    // JSON String to Map 변환
+    private Map<String, Object> convertJsonStringToMap(String responseBody) {
+        try {
+            return objectMapper.readValue(responseBody, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to convert JSON string to Map");
+        }
+    }
+
+    // Object to JSON String 변환
+    private String convertObjectToJsonString(Object object) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            // 맵 데이터를 JSON 문자열로 직렬화
+            return objectMapper.writeValueAsString(object);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to convert Map to JSON string");
+        }
+    }
+
+	// 노트 조회
     public Note getNoteById(Long noteId) {
         return noteRepository.findByNoteId(noteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
@@ -291,10 +372,11 @@ public class NoteService {
         Summary summary = note.getSummary();
 
         if (summary == null) {
-            // TODO : AI 요약 API 호출
-            // dummy data
+            String summaryJson = getSummaryFromAI(note);
+            Map<String, Object> summaryMap = convertJsonStringToMap(summaryJson);
+
             summary = Summary.builder()
-                    .content("dummy summary")
+                    .content(summaryMap.get("summary").toString())
                     .summaryDate(LocalDateTime.now())
                     .note(note)
                     .build();
@@ -306,7 +388,36 @@ public class NoteService {
                 .summary(summary.getContent())
                 .build();
     }
+	
+	// AI 요약 요청 보내기
+	private String getSummaryFromAI(Note note) {
+		String uri = "/summarys"; // 요약 요청 URI
 
+		try {
+            // Note 객체에서 content와 topics 필드만 추출하여 Map 생성
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("content", note.getContent());
+            requestBody.put("topics", note.getTopics());
+
+			// WebClient를 사용하여 파일 전송
+			String responseBody = webClient.post()
+				.uri(uri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(requestBody)) // JSON 형식으로 Map을 직접 바디에 추가
+				.retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorMessage -> {
+                            throw new RuntimeException("Error from AI Server: " + errorMessage);
+                        }))
+				.bodyToMono(String.class)
+				.block(); // TODO : 비동기 처리로 변환
+
+			return responseBody;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send summary request", e);
+        }
+    }
     public boolean isNoteOwner(User user, Long noteId) {
         Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
         return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
@@ -404,3 +515,4 @@ public class NoteService {
         }
     }
 }
+
