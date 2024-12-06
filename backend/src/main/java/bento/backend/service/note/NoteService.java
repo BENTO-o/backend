@@ -318,6 +318,7 @@ public class NoteService {
         transformedContent.put("script", transformedScript);
         transformedContent.put("speaker", originalContent.get("speaker"));
         JsonNode transformedContentNode = objectMapper.valueToTree(transformedContent);
+        List<String> summary = note.getSummary() != null ? List.of(note.getSummary().getContent()) : List.of();
 
         return NoteDetailResponse.builder()
                 .noteId(note.getNoteId())
@@ -329,7 +330,7 @@ public class NoteService {
                 .topics(note.getTopics())
                 .bookmarks(transformBookmarks(note.getBookmarks()))
                 .memos(transformMemos(note.getMemos()))
-                .AI(generateAIField())
+                .AI(summary)
                 .build();
     }
 
@@ -368,10 +369,6 @@ public class NoteService {
 
     private List<Map<String, String>> transformMemos(List<Memo> memos) {
         return transformList(memos, memo -> Map.of("timestamp", memo.getTimestamp(), "text", memo.getText()));
-    }
-
-    private List<String> generateAIField() {
-        return List.of("회의 제목 : GPT-3를 활용한 프롬프트 생성 시스템 개발 회의\n 회의 일시 : 2021년 10월 20일 14:00\n 회의 장소 : 온라인\n 회의 주제 : GPT-3를 활용한 프롬프트 생성 시스템 개발\n 회의 내용 : GPT-3를 활용한 프롬프트 생성 시스템 개발에 대한 회의를 진행하였습니다.");
     }
 
     // TODO : delete x, delete 폴더로 옮기기
