@@ -1,6 +1,6 @@
 package bento.backend.domain;
 
-import bento.backend.dto.converter.GenericJsonConverter;
+import bento.backend.dto.converter.StringListJsonConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -29,7 +29,7 @@ public class Note {
 	private String title;
 
 	@Column(name = "topic", columnDefinition = "json")
-	@Convert(converter = GenericJsonConverter.class)
+	@Convert(converter = StringListJsonConverter.class)
 	@Builder.Default
 	private List<String> topics = new ArrayList<>();
 
