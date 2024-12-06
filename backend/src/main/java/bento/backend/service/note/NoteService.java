@@ -36,8 +36,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
@@ -80,7 +79,7 @@ public class NoteService {
                 .folder(folder)
                 .audio(audio)
                 .user(user)
-                .content("Processing...") // 초기 컨텐츠
+                .content("{}") // 빈 JSON 객체로 초기화
                 .status(NoteStatus.PROCESSING) // 초기 상태
                 .build();
 
@@ -144,18 +143,13 @@ public class NoteService {
             Map<String, Object> responseMap = converter.convertToEntityAttribute(responseJson);
 
             // Audio 업데이트
-            audio.updateDuration(responseMap.get("duration").toString());
+            String duration = responseMap.get("duration").toString();
+            audio.updateDuration(duration);
             audio.updateStatus(AudioStatus.COMPLETED);
             audioRepository.save(audio);
 
             // Note 업데이트
-            Map<String, Object> contentMap;
-            Object content = responseMap.get("content");
-            if (content instanceof Map) {
-                contentMap = converter.convertToEntityAttribute(content.toString());
-            } else {
-                throw new RuntimeException(ErrorMessages.INVALID_RESPONSE_FORMAT + "Map");
-            }
+            Map<String, Object> contentMap = (Map<String, Object>) responseMap.get("content");
             String jsonContent = converter.convertToDatabaseColumn(contentMap);
             note.updateContent(jsonContent);
             note.updateStatus(NoteStatus.COMPLETE);
