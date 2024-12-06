@@ -42,4 +42,4 @@ volumes:
     name: bento-mysql
 networks:
   dev-network:
-    external: true # 외부 네트워크 사용
+    name: dev-network

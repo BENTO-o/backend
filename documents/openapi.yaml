@@ -708,6 +708,9 @@ paths:
                   message:
                     type: string
                     example: "Note created successfully"
+                  id:
+                    type: integer
+                    example: 1
         400:
           description: Validation failed for the input data
           content:
@@ -856,9 +859,15 @@ paths:
                         items:
                           type: object
                           properties:
+                            memo:
+                              type: string
+                              example: "메모 내용"
+                            bookmark:
+                              type: boolean
+                              example: true
                             text:
                               type: string
-                              example: "Script 1"
+                              example: "네 그래서 저희 진행 상황 공유드리고 그다음에 금주 업무 계획 같이 살펴보실 예정이고요."
                             speaker:
                               type: string
                               example: "Speaker 1"
@@ -872,6 +881,39 @@ paths:
                         example:
                           - "Speaker 1"
                           - "Speaker 2"
+                  topics:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "Deep Learning"
+                      - "Machine Learning"
+                  bookmarks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          example: "00:00:00"
+                  memos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        text:
+                          type: string
+                          example: "This is a memo"
+                        timestamp:
+                          type: string
+                          example: "00:00:00"
+                  ai:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "This is a summary of the note."
+
         404:
           description: Not Found
           content:
@@ -972,6 +1014,55 @@ paths:
                       type: string
                 example:
                   message: "Note not found"
+  /notes/{noteId}/status:
+    patch:
+      tags:
+        - Notes
+      summary: Update note status
+      description: Updates the status of a specific note by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ "PROCESSING", "COMPLETE", "FAILED" ]
+                  example: "COMPLETE"
+      responses:
+        200:
+          description: Note status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Note status updated successfully"
+        400:
+          description: Validation failed for the input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: string
+                example:
+                  status: "Invalid status provided. Please provide a valid status."
   /notes/folders:
     get:
       tags:
@@ -1024,6 +1115,9 @@ paths:
                   message:
                     type: string
                     example: "Folder created successfully"
+                  id:
+                    type: integer
+                    example: 1
         400:
           description: Validation failed for the input data
           content:

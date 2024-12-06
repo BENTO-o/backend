@@ -26,5 +26,8 @@ public class ErrorMessages {
     public static final String INVALID_DATE_FORMAT = "The provided date format is invalid. Please provide a valid date in the format yyyy-MM-dd.";
     public static final String EMPTY_QUERY = "The search query cannot be empty if you want to search notes. Are you looking for date range search?";
     public static final String EMPTY_CONTENT = "The note content cannot be empty. Please provide some content for the note.";
+    public static final String INVALID_RESPONSE_FORMAT = "The response format should be : ";
+    public static final String NOTE_PROCESSING = "The note is still processing. Please wait for the note to be created.";
+    public static final String NOTE_FAILED = "The note creation failed. Please try again.";
     // 필요한 다른 에러 메시지들을 추가
 }

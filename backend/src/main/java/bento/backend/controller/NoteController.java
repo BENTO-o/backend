@@ -40,7 +40,6 @@ public class NoteController {
 	) {
 		User user = userService.getUserById(userId);
 		String filePath = fileService.uploadFile(request.getFile());
-
 		return ResponseEntity.status(201).body(noteService.createNote(user, request.getFile(), filePath, request));
 	}
 
@@ -90,6 +89,13 @@ public class NoteController {
 	public ResponseEntity<NoteDetailResponse> getNoteDetail(@AuthenticationPrincipal Long userId, @PathVariable Long noteId) {
 		User user = userService.getUserById(userId);
 		return ResponseEntity.status(200).body(noteService.getNoteDetail(user, noteId));
+	}
+
+	// 노트 상태 조회
+	@GetMapping("/{noteId}/status")
+	public ResponseEntity<NoteStatusResponse> getNoteStatus(@AuthenticationPrincipal Long userId, @PathVariable Long noteId) {
+		User user = userService.getUserById(userId);
+		return ResponseEntity.status(200).body(noteService.getNoteStatus(user, noteId));
 	}
 
 	// 노트 삭제

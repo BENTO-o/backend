@@ -2,7 +2,8 @@ package bento.backend.service.note;
 
 import bento.backend.constant.ErrorMessages;
 import bento.backend.domain.*;
-import bento.backend.dto.converter.GenericJsonConverter;
+import bento.backend.dto.converter.StringListJsonConverter;
+import bento.backend.dto.converter.StringObjectMapJsonConverter;
 import bento.backend.dto.request.BookmarkCreateRequest;
 import bento.backend.dto.request.MemoCreateRequest;
 import bento.backend.dto.response.*;
@@ -15,26 +16,16 @@ import bento.backend.dto.request.NoteUpdateRequest;
 import bento.backend.exception.ResourceNotFoundException;
 import bento.backend.exception.ValidationException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.multipart.MultipartFile;
-import org.json.simple.JSONObject;
-import reactor.core.publisher.Mono;
 import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.core.io.ByteArrayResource;
 
 import org.springframework.util.MultiValueMap;
@@ -44,8 +35,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
+
 import java.io.IOException;
 
 @Service
@@ -56,15 +50,16 @@ public class NoteService {
     private final SummaryRepository summaryRepository;
     private final FolderRepository folderRepository;
     private final ObjectMapper objectMapper;
-	private final WebClient webClient;
+    private final WebClient webClient;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10); // 비동기 처리를 위한 스레드 풀
 
-	// 노트 생성
-	public MessageResponse createNote(User user, MultipartFile file, String filePath, NoteCreateRequest request) {
+    // 노트 생성
+    public MessageResponse createNote(User user, MultipartFile file, String filePath, NoteCreateRequest request) {
         String language = "enko"; // default language
 
-		if (request.getFolder() == null) {
-			request.setFolder("default");
-		}
+        if (request.getFolder() == null) {
+            request.setFolder("default");
+        }
 
         Folder folder = folderRepository.findByFolderNameAndUser(request.getFolder(), user)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
@@ -76,31 +71,18 @@ public class NoteService {
                 .language(language)
                 .user(user)
                 .build();
-
         audioRepository.save(audio);
 
-        // AI 서버로 요청 보내기
-		String responseJson = getScriptFromAI(file, language, request.getTopics());
-        Map<String, Object> responseMap = convertJsonStringToMap(responseJson);
+        Note note = Note.builder()
+                .title(request.getTitle())
+                .folder(folder)
+                .audio(audio)
+                .user(user)
+                .content("{}") // 빈 JSON 객체로 초기화
+                .status(NoteStatus.PROCESSING) // 초기 상태
+                .build();
 
-        // 응답값 바탕으로 duration 설정
-        audio.updateDuration(responseMap.get("duration").toString());
-        audioRepository.save(audio);
-
-		Map<String, Object> contentMap = (Map<String, Object>) responseMap.get("content");
-        String jsonContent = convertObjectToJsonString(contentMap);
-
-		// Note 객체 생성
-		Note note = Note.builder()
-			.title(request.getTitle())
-            .content(jsonContent)
-			.folder(folder)
-			.audio(audio)
-			.user(user)
-			.build();
-
-        // Add bookmarks and memos if present
-        ObjectMapper objectMapper = new ObjectMapper();
+        // Topics, Bookmarks, Memos 처리
         List<String> topics;
         List<BookmarkCreateRequest> bookmarkRequests;
         List<MemoCreateRequest> memoRequests;
@@ -110,14 +92,20 @@ public class NoteService {
         String bookmarkJson = (request.getBookmarks() == null) ? "[]" : request.getBookmarks();
         String memoJson = (request.getMemos() == null) ? "[]" : request.getMemos();
 
+        StringListJsonConverter ListJsonConverter = new StringListJsonConverter();
+        topics = ListJsonConverter.convertToEntityAttribute(topicsJson);
+
+        // ObjectMapper를 이용해 BookmarkCreateRequest와 MemoCreateRequest로 변환
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            // Parse topics, bookmarks, and memos
-            topics = objectMapper.readValue( topicsJson, new TypeReference<>() {} );
-            bookmarkRequests = objectMapper.readValue( bookmarkJson, new TypeReference<>() {} );
-            memoRequests = objectMapper.readValue( memoJson, new TypeReference<>() {} );
-        } catch (JsonProcessingException e) {
-            throw new ValidationException(ErrorMessages.INVALID_JSON_FORMAT);
+            bookmarkRequests = objectMapper.readValue(bookmarkJson, new TypeReference<List<BookmarkCreateRequest>>() {
+            });
+            memoRequests = objectMapper.readValue(memoJson, new TypeReference<List<MemoCreateRequest>>() {
+            });
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to parse JSON", e);
         }
+
         note.getTopics().addAll(topics);
 
         List<Bookmark> bookmarks = bookmarkRequests.stream()
@@ -137,15 +125,48 @@ public class NoteService {
                 .toList();
         note.getMemos().addAll(memos);
 
+        executorService.submit(() -> processNoteAsync(file, audio, note));
+
         noteRepository.save(note);
         return MessageResponse.builder()
                 .message("Note created successfully")
+                .id(note.getNoteId())
                 .build();
     }
 
+    private void processNoteAsync(MultipartFile file, Audio audio, Note note) {
+        StringObjectMapJsonConverter converter = new StringObjectMapJsonConverter();
+
+        try {
+            // AI 서버 호출
+            String responseJson = getScriptFromAI(file, audio.getLanguage(), note.getTopics().toString());
+            Map<String, Object> responseMap = converter.convertToEntityAttribute(responseJson);
+
+            // Audio 업데이트
+            String duration = responseMap.get("duration").toString();
+            audio.updateDuration(duration);
+            audio.updateStatus(AudioStatus.COMPLETED);
+            audioRepository.save(audio);
+
+            // Note 업데이트
+            Map<String, Object> contentMap = (Map<String, Object>) responseMap.get("content");
+            String jsonContent = converter.convertToDatabaseColumn(contentMap);
+            note.updateContent(jsonContent);
+            note.updateStatus(NoteStatus.COMPLETE);
+            noteRepository.save(note);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            audio.updateStatus(AudioStatus.FAILED);
+            audioRepository.save(audio);
+            note.updateStatus(NoteStatus.FAILED);
+            noteRepository.save(note);
+        }
+    }
+
     // AI 서버로 요청 보내기
-	private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
-		String uri = "/scripts"; // STT 요청 URI
+    private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
+        String uri = "/scripts"; // STT 요청 URI
 
         if (topicsJson == null) {
             topicsJson = "[]";
@@ -164,20 +185,20 @@ public class NoteService {
 
             // WebClient를 사용하여 파일 전송
             String responseBody = webClient.post()
-                .uri(uri)
-				.header(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(bodyMap))
-                .retrieve()
-                .bodyToMono(String.class)
-                .block(); // TODO : 비동기 처리로 변환
+                    .uri(uri)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(bodyMap))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block(); // TODO : 비동기 처리로 변환
 
             return responseBody;
 
         } catch (IOException e) {
             throw new RuntimeException("Error reading file input stream", e);
         }
-	}
+    }
 
     // 유니코드 응답 디코딩
     private String decodeUnicodeResponse(String responseBody) {
@@ -191,54 +212,31 @@ public class NoteService {
         }
     }
 
-    // JSON String to Map 변환
-    private Map<String, Object> convertJsonStringToMap(String responseBody) {
-        try {
-            return objectMapper.readValue(responseBody, new TypeReference<>() {});
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to convert JSON string to Map");
-        }
-    }
-
-    // Object to JSON String 변환
-    private String convertObjectToJsonString(Object object) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            // 맵 데이터를 JSON 문자열로 직렬화
-            return objectMapper.writeValueAsString(object);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to convert Map to JSON string");
-        }
-    }
-
-	// 노트 조회
+    // 노트 조회
     public Note getNoteById(Long noteId) {
         return noteRepository.findByNoteId(noteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
     }
 
+    // 조회 Util 함수 : Note → NoteListResponse 변환
+    private NoteListResponse convertToNoteListResponse(Note note) {
+        Audio audio = note.getAudio();
+
+        return NoteListResponse.builder()
+                .noteId(note.getNoteId())
+                .title(note.getTitle())
+                .folder(note.getFolder() != null ? note.getFolder().getFolderName() : "Default Folder")
+                .createdAt(note.getCreatedAt() != null ? note.getFormattedDateTime(note.getCreatedAt()) : "N/A")
+                .duration(audio != null ? audio.getDuration() : "00:00:00")
+                .build();
+    }
+
     // 노트 목록 조회
     public List<NoteListResponse> getNoteList(User user) {
         List<Note> notes = noteRepository.findAllByUser(user);
-        List<NoteListResponse> noteList = new ArrayList<>();
-
-        for (Note note : notes) {
-            Audio audio = note.getAudio();
-
-            NoteListResponse noteListResponse = NoteListResponse.builder()
-                    .noteId(note.getNoteId())
-                    .title(note.getTitle())
-                    .folder(note.getFolder().getFolderName())
-                    .createdAt(note.getFormattedDateTime(note.getCreatedAt()))
-                    .duration(audio.getDuration())
-                    .build();
-
-            noteList.add(noteListResponse);
-        }
-
-        return noteList;
+        return notes.stream()
+                .map(this::convertToNoteListResponse)
+                .toList();
     }
 
     // 노트 목록 조회 (폴더별)
@@ -247,23 +245,9 @@ public class NoteService {
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not found"));
 
         List<Note> notes = folder.getNotes();
-        List<NoteListResponse> noteList = new ArrayList<>();
-
-        for (Note note : notes) {
-            Audio audio = note.getAudio();
-
-            NoteListResponse noteListResponse = NoteListResponse.builder()
-                    .noteId(note.getNoteId())
-                    .title(note.getTitle())
-                    .folder(note.getFolder().getFolderName())
-                    .createdAt(note.getFormattedDateTime(note.getCreatedAt()))
-                    .duration(audio.getDuration())
-                    .build();
-
-            noteList.add(noteListResponse);
-        }
-
-        return noteList;
+        return notes.stream()
+                .map(this::convertToNoteListResponse)
+                .toList();
     }
 
     // 유저의 폴더 목록 조회
@@ -297,21 +281,44 @@ public class NoteService {
 
         return MessageResponse.builder()
                 .message("Folder created successfully")
+                .id(newFolder.getFolderId())
                 .build();
     }
 
     // 노트 상세 조회
     public NoteDetailResponse getNoteDetail(User user, Long noteId) {
         Note note = noteRepository.findByNoteIdAndUser(noteId, user)
-                .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.NOTE_ID_NOT_FOUND_ERROR + noteId));
+
+        if (note.getStatus() == NoteStatus.PROCESSING) {
+            throw new ResourceNotFoundException(ErrorMessages.NOTE_PROCESSING);
+        }
+        else if (note.getStatus() == NoteStatus.FAILED) {
+            throw new ResourceNotFoundException(ErrorMessages.NOTE_FAILED);
+        }
 
         Audio audio = note.getAudio();
-        JsonNode JsonContent;
+        StringObjectMapJsonConverter converter = new StringObjectMapJsonConverter();
+
+        Map<String, Object> originalContent;
         try {
-            JsonContent = objectMapper.readTree(note.getContent());
+            originalContent = converter.convertToEntityAttribute(note.getContent());
         } catch (Exception e) {
-            throw new ResourceNotFoundException("Content not found");
+            throw new ResourceNotFoundException("Invalid content format for note with ID: " + noteId);
         }
+
+        // script 변환
+        Object script = originalContent.get("script");
+        if (!(script instanceof List)) {
+            throw new ResourceNotFoundException("Invalid script format for note with ID: " + noteId);
+        }
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> transformedScript = transformScript((List<Map<String, Object>>) originalContent.get("script"), note);
+        Map<String, Object> transformedContent = new HashMap<>();
+        transformedContent.put("script", transformedScript);
+        transformedContent.put("speaker", originalContent.get("speaker"));
+        JsonNode transformedContentNode = objectMapper.valueToTree(transformedContent);
+        List<String> summary = note.getSummary() != null ? List.of(note.getSummary().getContent()) : List.of();
 
         return NoteDetailResponse.builder()
                 .noteId(note.getNoteId())
@@ -319,11 +326,49 @@ public class NoteService {
                 .folder(note.getFolder().getFolderName())
                 .createdAt(note.getFormattedDateTime(note.getCreatedAt()))
                 .duration(audio.getDuration())
-                .content(JsonContent)
-                // TODO : AI 응답 형식 보고 수정 예정
-                // .speakers(note.getSpeakers())
-                // .scripts(note.getScripts())
+                .content(transformedContentNode)
+                .topics(note.getTopics())
+                .bookmarks(transformBookmarks(note.getBookmarks()))
+                .memos(transformMemos(note.getMemos()))
+                .AI(summary)
                 .build();
+    }
+
+    private List<Map<String, Object>> transformScript(List<Map<String, Object>> originalScript, Note note) {
+        return originalScript.stream().map(entry -> transformScriptEntry(entry, note)).toList();
+    }
+
+    private Map<String, Object> transformScriptEntry(Map<String, Object> entry, Note note) {
+        String timestamp = (String) entry.get("timestamp");
+        return new HashMap<>(entry) {{
+            put("memo", findMemoForTimestamp(timestamp, note));
+            put("bookmark", isBookmark(timestamp, note));
+        }};
+    }
+
+    private String findMemoForTimestamp(String timestamp, Note note) {
+        return note.getMemos().stream()
+                .filter(memo -> memo.getTimestamp().equals(timestamp))
+                .map(Memo::getText)
+                .findFirst()
+                .orElse("");
+    }
+
+    private boolean isBookmark(String timestamp, Note note) {
+        return note.getBookmarks().stream()
+                .anyMatch(bookmark -> bookmark.getTimestamp().equals(timestamp));
+    }
+
+    private <T> List<Map<String, String>> transformList(List<T> items, Function<T, Map<String, String>> mapper) {
+        return items.stream().map(mapper).toList();
+    }
+
+    private List<Map<String, String>> transformBookmarks(List<Bookmark> bookmarks) {
+        return transformList(bookmarks, bookmark -> Map.of("timestamp", bookmark.getTimestamp()));
+    }
+
+    private List<Map<String, String>> transformMemos(List<Memo> memos) {
+        return transformList(memos, memo -> Map.of("timestamp", memo.getTimestamp(), "text", memo.getText()));
     }
 
     // TODO : delete x, delete 폴더로 옮기기
@@ -373,7 +418,8 @@ public class NoteService {
 
         if (summary == null) {
             String summaryJson = getSummaryFromAI(note);
-            Map<String, Object> summaryMap = convertJsonStringToMap(summaryJson);
+            StringObjectMapJsonConverter converter = new StringObjectMapJsonConverter();
+            Map<String, Object> summaryMap = converter.convertToEntityAttribute(summaryJson);
 
             summary = Summary.builder()
                     .content(summaryMap.get("summary").toString())
@@ -388,41 +434,43 @@ public class NoteService {
                 .summary(summary.getContent())
                 .build();
     }
-	
-	// AI 요약 요청 보내기
-	private String getSummaryFromAI(Note note) {
-		String uri = "/summarys"; // 요약 요청 URI
 
-		try {
+    // AI 요약 요청 보내기
+    private String getSummaryFromAI(Note note) {
+        String uri = "/summarys"; // 요약 요청 URI
+
+        try {
             // Note 객체에서 content와 topics 필드만 추출하여 Map 생성
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("content", note.getContent());
             requestBody.put("topics", note.getTopics());
 
-			// WebClient를 사용하여 파일 전송
-			String responseBody = webClient.post()
-				.uri(uri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(requestBody)) // JSON 형식으로 Map을 직접 바디에 추가
-				.retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> clientResponse.bodyToMono(String.class)
-                        .flatMap(errorMessage -> {
-                            throw new RuntimeException("Error from AI Server: " + errorMessage);
-                        }))
-				.bodyToMono(String.class)
-				.block(); // TODO : 비동기 처리로 변환
+            // WebClient를 사용하여 파일 전송
+            String responseBody = webClient.post()
+                    .uri(uri)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(BodyInserters.fromValue(requestBody)) // JSON 형식으로 Map을 직접 바디에 추가
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            clientResponse -> clientResponse.bodyToMono(String.class)
+                                    .flatMap(errorMessage -> {
+                                        throw new RuntimeException("Error from AI Server: " + errorMessage);
+                                    }))
+                    .bodyToMono(String.class)
+                    .block(); // TODO : 비동기 처리로 변환
 
-			return responseBody;
+            return responseBody;
         } catch (Exception e) {
             throw new RuntimeException("Failed to send summary request", e);
         }
     }
-    public boolean isNoteOwner(User user, Long noteId) {
-        Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
-        return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
-    }
 
+//    public boolean isNoteOwner(User user, Long noteId) {
+//        Optional<Long> ownerId = noteRepository.findUserIdByNoteId(noteId);
+//        return (user.getRole().equals(Role.ROLE_ADMIN) || (ownerId != null && ownerId.equals(user.getUserId())));
+//    }
+
+    // 노트 검색
     public List<NoteSearchResponse> searchNotes(User user, String query, String startDate, String endDate) {
         if (startDate != null && endDate != null) {
             List<Note> notes = getNotesByDateRange(user, startDate, endDate);
@@ -460,7 +508,7 @@ public class NoteService {
                 .toList();
     }
 
-
+    // 날짜 범위로 노트 조회
     public List<Note> getNotesByDateRange(User user, String startDate, String endDate) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -478,41 +526,54 @@ public class NoteService {
         }
     }
 
+    // 노트 내용에서 검색어 찾기
     public List<NoteContentMatch> findMatches(String content, String query) {
         if (content == null || content.isEmpty() || query == null || query.isEmpty()) {
             return List.of();
         }
 
-        GenericJsonConverter converter = new GenericJsonConverter();
+        StringObjectMapJsonConverter converter = new StringObjectMapJsonConverter();
 
         try {
             // JSON 문자열을 Map<String, Object>로 변환
-            Map<String, Object> jsonData = converter.convertJsonToMap(content);
-
-            List<NoteContentMatch> matches = new ArrayList<>();
+            Map<String, Object> jsonData = converter.convertToEntityAttribute(content);
 
             // "script" 배열에서 "text" 검색
-            if (jsonData.containsKey("script")) {
-                List<Map<String, Object>> scripts = (List<Map<String, Object>>) jsonData.get("script");
-
-                for (Map<String, Object> script : scripts) {
-                    if (script.containsKey("text")) {
-                        String text = (String) script.get("text");
-                        if (text.toLowerCase().contains(query.toLowerCase())) {
-                            matches.add(NoteContentMatch.builder()
-                                    .text(text)
-                                    .timestamp((String) script.get("timestamp"))
-                                    .build());
-                        }
-                    }
-                }
+            Object scriptObj = jsonData.get("script");
+            if (!(scriptObj instanceof List)) {
+                return List.of(); // "script"가 없거나 올바른 타입이 아니면 빈 리스트 반환
             }
 
-            return matches;
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> scripts = (List<Map<String, Object>>) scriptObj;
 
+            return scripts.stream()
+                    .filter(script -> script.containsKey("text") && script.containsKey("timestamp"))
+                    .map(script -> {
+                        String text = (String) script.get("text");
+                        String timestamp = (String) script.get("timestamp");
+                        if (text != null && text.toLowerCase().contains(query.toLowerCase())) {
+                            return NoteContentMatch.builder()
+                                    .text(text)
+                                    .timestamp(timestamp)
+                                    .build();
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             throw new RuntimeException("Error parsing JSON content", e);
         }
     }
-}
 
+    // 노트 상태 조회
+    public NoteStatusResponse getNoteStatus(User user, Long noteId) {
+        Note note = noteRepository.findByNoteIdAndUser(noteId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
+
+        return NoteStatusResponse.builder()
+                .status(note.getStatus().name())
+                .build();
+    }
+}
