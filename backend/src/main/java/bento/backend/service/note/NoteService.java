@@ -341,22 +341,41 @@ public class NoteService {
     private Map<String, Object> transformScriptEntry(Map<String, Object> entry, Note note) {
         String timestamp = (String) entry.get("timestamp");
         return new HashMap<>(entry) {{
-            put("memo", findMemoForTimestamp(timestamp, note));
-            put("bookmark", isBookmark(timestamp, note));
+            put("memo", findMemoForTimestampWithId(timestamp, note));
+            put("bookmark", findBookmarkForTimestamp(timestamp, note));
         }};
     }
 
-    private String findMemoForTimestamp(String timestamp, Note note) {
-        return note.getMemos().stream()
-                .filter(memo -> memo.getTimestamp().equals(timestamp))
-                .map(Memo::getText)
+    private Map<String, Object> findMemoForTimestampWithId(String timestamp, Note note) {
+        Map<String, Object> memo = new HashMap<>();
+        memo.put("id", null);
+        memo.put("text", "");
+
+        note.getMemos().stream()
+                .filter(m -> m.getTimestamp().equals(timestamp))
                 .findFirst()
-                .orElse("");
+                .ifPresent(m -> {
+                    memo.put("id", m.getMemoId());
+                    memo.put("text", m.getText());
+                });
+
+        return memo;
     }
 
-    private boolean isBookmark(String timestamp, Note note) {
-        return note.getBookmarks().stream()
-                .anyMatch(bookmark -> bookmark.getTimestamp().equals(timestamp));
+    private Map<String, Object> findBookmarkForTimestamp(String timestamp, Note note) {
+        Map<String, Object> bookmark = new HashMap<>();
+        bookmark.put("id", null);
+        bookmark.put("status", false);
+
+        note.getBookmarks().stream()
+                .filter(b -> b.getTimestamp().equals(timestamp))
+                .findFirst()
+                .ifPresent(b -> {
+                    bookmark.put("id", b.getBookmarkId());
+                    bookmark.put("status", true);
+                });
+
+        return bookmark;
     }
 
     private <T> List<Map<String, String>> transformList(List<T> items, Function<T, Map<String, String>> mapper) {
