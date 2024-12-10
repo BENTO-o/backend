@@ -17,8 +17,8 @@ public class NoteDetailResponse {
 	private String duration;
 	private JsonNode content;
 	private List<String> topics;
-	private List<Map<String, String>> bookmarks;
-	private List<Map<String, String>> memos;
+	private List<Map<String, Object>> bookmarks;
+	private List<Map<String, Object>> memos;
 	// TODO : AI 응답 형식 보고 수정 예정
 	private List<String> AI;
 }

@@ -378,16 +378,16 @@ public class NoteService {
         return bookmark;
     }
 
-    private <T> List<Map<String, String>> transformList(List<T> items, Function<T, Map<String, String>> mapper) {
+    private <T> List<Map<String, Object>> transformList(List<T> items, Function<T, Map<String, Object>> mapper) {
         return items.stream().map(mapper).toList();
     }
 
-    private List<Map<String, String>> transformBookmarks(List<Bookmark> bookmarks) {
-        return transformList(bookmarks, bookmark -> Map.of("timestamp", bookmark.getTimestamp()));
+    private List<Map<String, Object>> transformBookmarks(List<Bookmark> bookmarks) {
+        return transformList(bookmarks, bookmark -> Map.of("id", bookmark.getBookmarkId(), "timestamp", bookmark.getTimestamp()));
     }
 
-    private List<Map<String, String>> transformMemos(List<Memo> memos) {
-        return transformList(memos, memo -> Map.of("timestamp", memo.getTimestamp(), "text", memo.getText()));
+    private List<Map<String, Object>> transformMemos(List<Memo> memos) {
+        return transformList(memos, memo -> Map.of("id", memo.getMemoId(), "timestamp", memo.getTimestamp(), "text", memo.getText()));
     }
 
     // TODO : delete x, delete 폴더로 옮기기
