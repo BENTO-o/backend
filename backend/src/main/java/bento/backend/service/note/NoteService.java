@@ -39,7 +39,8 @@ import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
-
+import java.io.File;
+import java.nio.file.Files;
 import java.io.IOException;
 
 @Service
@@ -165,6 +166,38 @@ public class NoteService {
     }
 
     // AI 서버로 요청 보내기
+    private File convertIfNeeded(MultipartFile file) throws IOException, InterruptedException {
+        File tempInputFile = File.createTempFile("input", ".wav");
+        file.transferTo(tempInputFile);
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null && originalFilename.toLowerCase().endsWith(".wav")) {
+            File tempOutputFile = File.createTempFile("output", ".m4a");
+            convertWavToM4a(tempInputFile.getAbsolutePath(), tempOutputFile.getAbsolutePath());
+            tempInputFile.delete();
+            return tempOutputFile;
+        } else {
+            return tempInputFile;
+        }
+    }
+
+    private void convertWavToM4a(String inputPath, String outputPath) throws IOException, InterruptedException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffmpeg",
+                "-i", inputPath,
+                "-c:a", "aac",
+                "-b:a", "128k",
+                outputPath
+        );
+
+        Process process = processBuilder.start();
+        int exitCode = process.waitFor();
+
+        if (exitCode != 0) {
+            throw new RuntimeException("FFmpeg conversion failed");
+        }
+    }
+
     private String getScriptFromAI(MultipartFile file, String language, String topicsJson) {
         String uri = "/scripts"; // STT 요청 URI
 
@@ -173,11 +206,12 @@ public class NoteService {
         }
 
         try {
-            // Multipart 데이터를 MultiValueMap에 설정
+            File processedFile = convertIfNeeded(file);
             MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
-            bodyMap.add("file", new ByteArrayResource(file.getBytes()) {
+            bodyMap.add("file", new ByteArrayResource(Files.readAllBytes(processedFile.toPath())) {
+                @Override
                 public String getFilename() {
-                    return file.getOriginalFilename();
+                    return processedFile.getName();
                 }
             });
             bodyMap.add("language", language);
@@ -193,10 +227,10 @@ public class NoteService {
                     .bodyToMono(String.class)
                     .block(); // TODO : 비동기 처리로 변환
 
+            processedFile.delete();
             return responseBody;
-
-        } catch (IOException e) {
-            throw new RuntimeException("Error reading file input stream", e);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException("Error processing file input", e);
         }
     }
 
